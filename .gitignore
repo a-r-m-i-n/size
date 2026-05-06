@@ -1,0 +1,7 @@
+/.idea
+/.codex
+/config
+/public
+/var
+/vendor
+/composer.lock

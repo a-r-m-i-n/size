@@ -1,0 +1,49 @@
+{
+    "name": "t3/size",
+    "type": "typo3-cms-extension",
+    "version": "0.1.0-dev",
+    "description": "Displays TYPO3 CMS storage usage information in the backend.",
+    "keywords": [
+        "TYPO3 CMS",
+        "Storage usage",
+        "File size",
+        "Database size"
+    ],
+    "homepage": "https://github.com/a-r-m-i-n/size",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Armin Vieweg",
+            "role": "Developer",
+            "email": "armin@v.ieweg.de",
+            "homepage": "https://v.ieweg.de"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "typo3/cms-core": "^13.4 || ^14.3",
+        "typo3/cms-backend": "^13.4 || ^14.3"
+    },
+    "require-dev": {
+        "typo3/cms-dashboard": "^13.4 || ^14.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "T3\\Size\\": "Classes"
+        }
+    },
+    "replace": {
+        "typo3-ter/size": "*"
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "size"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/cms-composer-installers": true,
+            "typo3/class-alias-loader": true
+        }
+    }
+}
