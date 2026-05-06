@@ -6,6 +6,42 @@
             <trans-unit id="title">
                 <source>Storage usage information</source>
             </trans-unit>
+            <trans-unit id="section.code">
+                <source>Code</source>
+            </trans-unit>
+            <trans-unit id="section.misc">
+                <source>Misc</source>
+            </trans-unit>
+            <trans-unit id="section.total">
+                <source>Total</source>
+            </trans-unit>
+            <trans-unit id="code.vendor">
+                <source>TYPO3/Core</source>
+            </trans-unit>
+            <trans-unit id="code.extensions">
+                <source>Local extensions</source>
+            </trans-unit>
+            <trans-unit id="code.dependencies">
+                <source>Dependencies</source>
+            </trans-unit>
+            <trans-unit id="code.total">
+                <source>Total</source>
+            </trans-unit>
+            <trans-unit id="section.fileadmin">
+                <source>Media</source>
+            </trans-unit>
+            <trans-unit id="fileadmin.total">
+                <source>Total</source>
+            </trans-unit>
+            <trans-unit id="section.database">
+                <source>Database</source>
+            </trans-unit>
+            <trans-unit id="database.total">
+                <source>Total</source>
+            </trans-unit>
+            <trans-unit id="notAvailable">
+                <source>not available</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

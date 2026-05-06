@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace T3\Size\Backend\Toolbar;
 
 use Psr\Http\Message\ServerRequestInterface;
+use T3\Size\Service\SizeOverviewProvider;
 use TYPO3\CMS\Backend\Toolbar\RequestAwareToolbarItemInterface;
 use TYPO3\CMS\Backend\Toolbar\ToolbarItemInterface;
 use TYPO3\CMS\Backend\View\BackendViewFactory;
@@ -17,6 +18,7 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     public function __construct(
         private readonly IconFactory $iconFactory,
         private readonly BackendViewFactory $backendViewFactory,
+        private readonly SizeOverviewProvider $sizeOverviewProvider,
     ) {}
 
     public function setRequest(ServerRequestInterface $request): void
@@ -63,22 +65,9 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     public function getDropDown(): string
     {
         $view = $this->backendViewFactory->create($this->request, ['t3/size']);
+        $view->assignMultiple($this->sizeOverviewProvider->getOverview());
 
         return $view->render('ToolbarItems/SizeToolbarItemDropDown');
-
-//        return '
-//            <div class="dropdown-menu dropdown-menu-end">
-//                <div class="dropdown-header">Projektinfo</div>
-//                <div class="dropdown-item-text">
-//                    <strong>Deployment:</strong><br>
-//                    v2026.05.06
-//                </div>
-//                <div class="dropdown-divider"></div>
-//                <a class="dropdown-item" href="/typo3/module/web/layout">
-//                    Zum Seitenmodul
-//                </a>
-//            </div>
-//        ';
     }
 
     public function getAdditionalAttributes(): array
