@@ -6,6 +6,9 @@
             <trans-unit id="title">
                 <source>Storage usage information</source>
             </trans-unit>
+            <trans-unit id="showDetails">
+                <source>Show details</source>
+            </trans-unit>
             <trans-unit id="section.code">
                 <source>Code</source>
             </trans-unit>
