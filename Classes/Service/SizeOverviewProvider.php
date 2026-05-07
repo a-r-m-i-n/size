@@ -1010,8 +1010,13 @@ final class SizeOverviewProvider
         }
 
         $precision = $unitIndex === 0 ? 0 : 2;
+        $formattedValue = number_format($value, $precision, '.', ' ');
 
-        return number_format($value, $precision, '.', ' ') . ' ' . $units[$unitIndex];
+        if ($precision > 0) {
+            $formattedValue = rtrim(rtrim($formattedValue, '0'), '.');
+        }
+
+        return $formattedValue . ' ' . $units[$unitIndex];
     }
 
     private function formatPercentage(int $bytes, int $totalBytes): string
