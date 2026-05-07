@@ -6,4 +6,7 @@
 <span class="toolbar-item-title">
     <f:translate key="title" extensionName="size" />
 </span>
+<f:if condition="{total.badgeClass}">
+    <span class="toolbar-item-badge badge badge-pill {total.badgeClass}">!</span>
+</f:if>
 </html>

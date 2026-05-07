@@ -36,6 +36,7 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     public function getItem(): string
     {
         $view = $this->backendViewFactory->create($this->request, ['t3/size']);
+        $view->assignMultiple($this->sizeOverviewProvider->getOverview());
 
         return $view->render('ToolbarItems/SizeToolbarItem');
 

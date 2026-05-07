@@ -7,6 +7,7 @@ namespace T3\Size\Service;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -22,6 +23,7 @@ final class SizeOverviewProvider
         private readonly StorageRepository $storageRepository,
         private readonly ConnectionPool $connectionPool,
         private readonly LanguageServiceFactory $languageServiceFactory,
+        private readonly ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     /**
@@ -36,7 +38,7 @@ final class SizeOverviewProvider
      *     connections: list<array{name: string, bytes: int|null, label: string, available: bool}>,
      *     total: array{bytes: int|null, label: string, available: bool}
      *   },
-     *   total: array{bytes: int, label: string}
+     *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
      * }
      */
     public function getOverview(): array
@@ -45,12 +47,13 @@ final class SizeOverviewProvider
         $misc = $this->getMiscOverview();
         $storages = $this->getStorageOverview();
         $database = $this->getDatabaseOverview();
-        $total = $this->createByteValue(
+        $totalBytes = (
             ($code['total']['bytes'] ?? 0)
             + ($misc['bytes'] ?? 0)
             + ($storages['total']['bytes'] ?? 0)
             + ($database['total']['bytes'] ?? 0)
         );
+        $total = $this->createTotalValue($totalBytes);
 
         return [
             'code' => $code,
@@ -460,6 +463,102 @@ final class SizeOverviewProvider
             'bytes' => null,
             'label' => $this->translate(self::NOT_AVAILABLE),
         ];
+    }
+
+    /**
+     * @return array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
+     */
+    private function createTotalValue(int $bytes): array
+    {
+        $value = $this->createByteValue($bytes);
+        $maximumBytes = $this->getConfiguredMaximumTotalStorageBytes();
+
+        if ($maximumBytes === null) {
+            return [
+                ...$value,
+                'displayLabel' => $value['label'],
+                'highlightClass' => '',
+                'badgeClass' => '',
+            ];
+        }
+
+        $percentage = $bytes / $maximumBytes * 100;
+        $statusClass = $this->resolveTotalStatusClass($percentage);
+
+        return [
+            ...$value,
+            'displayLabel' => sprintf(
+                '%s / %s (%s%%)',
+                $value['label'],
+                $this->formatBytes($maximumBytes),
+                number_format($percentage, 1, '.', ''),
+            ),
+            'highlightClass' => $statusClass !== '' ? 'text-' . $statusClass : '',
+            'badgeClass' => $statusClass !== '' ? 'badge-' . $statusClass : '',
+        ];
+    }
+
+    private function resolveTotalStatusClass(float $percentage): string
+    {
+        if ($percentage > 100.0) {
+            return 'danger';
+        }
+
+        if ($percentage > 90.0) {
+            return 'warning';
+        }
+
+        return '';
+    }
+
+    private function getConfiguredMaximumTotalStorageBytes(): ?int
+    {
+        try {
+            $configuration = $this->extensionConfiguration->get('size');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!is_array($configuration)) {
+            return null;
+        }
+
+        $configuredValue = trim((string)($configuration['maximumTotalStorage'] ?? ''));
+        if ($configuredValue === '') {
+            return null;
+        }
+
+        return $this->parseSizeStringToBytes($configuredValue);
+    }
+
+    private function parseSizeStringToBytes(string $value): ?int
+    {
+        if (!preg_match('/^\s*(\d+(?:[.,]\d+)?)\s*(B|KB|MB|GB|TB)\s*$/i', $value, $matches)) {
+            return null;
+        }
+
+        $numericValue = (float)str_replace(',', '.', $matches[1]);
+        if ($numericValue <= 0) {
+            return null;
+        }
+
+        $unit = strtoupper($matches[2]);
+        $unitMap = [
+            'B' => 0,
+            'KB' => 1,
+            'MB' => 2,
+            'GB' => 3,
+            'TB' => 4,
+        ];
+
+        $power = $unitMap[$unit] ?? null;
+        if ($power === null) {
+            return null;
+        }
+
+        $bytes = (int)round($numericValue * (1024 ** $power));
+
+        return $bytes > 0 ? $bytes : null;
     }
 
     private function formatBytes(int $bytes): string
