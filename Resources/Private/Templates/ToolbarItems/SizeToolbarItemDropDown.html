@@ -1,97 +1,41 @@
 <html xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers" data-namespace-typo3-fluid="true">
-<f:asset.script
-    identifier="size-storage-usage-details-toggle"
-    src="EXT:size/Resources/Public/JavaScript/StorageUsageDetailsToggle.js"
-    inline="0"
-/>
 <f:asset.css
-    identifier="size-storage-usage-details-toggle"
-    href="EXT:size/Resources/Public/Css/StorageUsageDetailsToggle.css"
+    identifier="size-toolbar-item-dropdown"
+    href="EXT:size/Resources/Public/Css/SizeToolbarItemDropDown.css"
 />
 
-<div data-size-dropdown>
-    <p class="dropdown-headline"><f:translate key="title" extensionName="size" /></p>
-
-    <div class="dropdown-item-text">
-        <label>
-            <input type="checkbox" data-size-details-toggle>
-            <f:translate key="showDetails" extensionName="size" />
-        </label>
-    </div>
+<div class="size-storage-dropdown">
+    <p class="dropdown-headline mb-2"><f:translate key="title" extensionName="size" /></p>
 
     <div class="dropdown-item-text">
         <div class="size-storage-section-heading">
-            <span class="size-storage-section-icon text-info"><core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" /></span>
+            <span class="size-storage-section-icon size-storage-section-icon-media"><core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" /></span>
             <strong><f:translate key="section.fileadmin" extensionName="size" />: {storages.total.label}</strong>
         </div>
-        <f:if condition="{storages.items -> f:count()} > 0">
-            <f:then>
-                <div class="size-storage-section-details">
-                    <f:for each="{storages.items}" as="storage">
-                        <div data-size-detail>
-                            <f:if condition="{storage.name}">
-                                <f:then>{storage.name}: {storage.label}</f:then>
-                                <f:else>{storage.label}</f:else>
-                            </f:if>
-                        </div>
-                    </f:for>
-                </div>
-            </f:then>
-            <f:else>
-                <div class="size-storage-section-details">
-                    <div data-size-detail><f:translate key="notAvailable" extensionName="size" /></div>
-                </div>
-            </f:else>
-        </f:if>
     </div>
-
-    <hr class="dropdown-divider" aria-hidden="true" data-size-divider>
 
     <div class="dropdown-item-text">
         <div class="size-storage-section-heading">
-            <span class="size-storage-section-icon text-info"><core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" /></span>
+            <span class="size-storage-section-icon size-storage-section-icon-database"><core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" /></span>
             <strong><f:translate key="section.database" extensionName="size" />: {database.total.label}</strong>
         </div>
-        <f:if condition="{database.connections -> f:count()} > 0">
-            <f:then>
-                <div class="size-storage-section-details">
-                    <f:for each="{database.connections}" as="connection">
-                        <div data-size-detail>{connection.name}: {connection.label}</div>
-                    </f:for>
-                </div>
-            </f:then>
-            <f:else>
-                <div class="size-storage-section-details">
-                    <div data-size-detail><f:translate key="notAvailable" extensionName="size" /></div>
-                </div>
-            </f:else>
-        </f:if>
     </div>
-
-    <hr class="dropdown-divider" aria-hidden="true" data-size-divider>
 
     <div class="dropdown-item-text">
         <div class="size-storage-section-heading">
-            <span class="size-storage-section-icon text-info"><core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" /></span>
+            <span class="size-storage-section-icon size-storage-section-icon-code"><core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" /></span>
             <strong><f:translate key="section.code" extensionName="size" />: {code.total.label}</strong>
         </div>
-        <div class="size-storage-section-details">
-            <div data-size-detail><f:translate key="code.vendor" extensionName="size" />: {code.vendor.label}</div>
-            <div data-size-detail><f:translate key="code.extensions" extensionName="size" />: {code.extensions.label}</div>
-            <div data-size-detail><f:translate key="code.dependencies" extensionName="size" />: {code.dependencies.label}</div>
-        </div>
     </div>
-
-    <hr class="dropdown-divider" aria-hidden="true" data-size-divider>
 
     <div class="dropdown-item-text">
         <div class="size-storage-section-heading">
-            <span class="size-storage-section-icon text-info"><core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" /></span>
+            <span class="size-storage-section-icon size-storage-section-icon-misc"><core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" /></span>
             <strong><f:translate key="section.misc" extensionName="size" />: {misc.label}</strong>
         </div>
     </div>
 
-    <hr class="dropdown-divider" aria-hidden="true" data-size-divider>
+    <hr class="dropdown-divider" aria-hidden="true">
 
     <div class="dropdown-item-text">
         <div class="size-storage-section-heading">
@@ -102,7 +46,7 @@
 
     <hr class="dropdown-divider" aria-hidden="true">
 
-    <a href="{storageStatisticsModuleUrl}" class="dropdown-item" aria-describedby="">
+    <a href="{storageStatisticsModuleUrl}" class="dropdown-item mb-1" aria-describedby="">
         <span class="dropdown-item-columns">
             <core:icon identifier="actions-arrow-end" alternativeMarkupIdentifier="inline" />
             <span class="dropdown-item-column dropdown-item-column-text">

@@ -1,0 +1,36 @@
+.size-storage-dropdown {
+    --size-storage-media: #8ea62f;
+    --size-storage-database: #4e7dcf;
+    --size-storage-code: #8f58b8;
+    --size-storage-misc: #b4554f;
+}
+
+.size-storage-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.size-storage-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    flex: 0 0 1rem;
+}
+
+.size-storage-section-icon-media {
+    color: var(--size-storage-media);
+}
+
+.size-storage-section-icon-database {
+    color: var(--size-storage-database);
+}
+
+.size-storage-section-icon-code {
+    color: var(--size-storage-code);
+}
+
+.size-storage-section-icon-misc {
+    color: var(--size-storage-misc);
+}
