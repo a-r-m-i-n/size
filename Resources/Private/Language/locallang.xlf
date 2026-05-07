@@ -39,8 +39,56 @@
             <trans-unit id="section.database">
                 <source>Database</source>
             </trans-unit>
+            <trans-unit id="section.databaseTables">
+                <source>Database: Sizes by connections and tables</source>
+            </trans-unit>
+            <trans-unit id="section.mediaBreakdown">
+                <source>Media: File type breakdown by file storages</source>
+            </trans-unit>
             <trans-unit id="database.total">
                 <source>Total</source>
+            </trans-unit>
+            <trans-unit id="media.images">
+                <source>Images</source>
+            </trans-unit>
+            <trans-unit id="media.videos">
+                <source>Videos</source>
+            </trans-unit>
+            <trans-unit id="media.documents">
+                <source>Documents</source>
+            </trans-unit>
+            <trans-unit id="media.audio">
+                <source>Audio</source>
+            </trans-unit>
+            <trans-unit id="media.archives">
+                <source>Archives</source>
+            </trans-unit>
+            <trans-unit id="media.processedImages">
+                <source>Processed images</source>
+            </trans-unit>
+            <trans-unit id="media.other">
+                <source>Other</source>
+            </trans-unit>
+            <trans-unit id="table.files">
+                <source>Files</source>
+            </trans-unit>
+            <trans-unit id="table.rows">
+                <source>Rows</source>
+            </trans-unit>
+            <trans-unit id="table.size">
+                <source>Size</source>
+            </trans-unit>
+            <trans-unit id="table.share">
+                <source>Share</source>
+            </trans-unit>
+            <trans-unit id="table.table">
+                <source>Table</source>
+            </trans-unit>
+            <trans-unit id="database.tableSizeNotAvailable">
+                <source>not available</source>
+            </trans-unit>
+            <trans-unit id="database.hiddenEmptyTablesNotice">
+                <source>Note: Empty tables are not shown. They may still consume a small base size in the database.</source>
             </trans-unit>
             <trans-unit id="notAvailable">
                 <source>not available</source>

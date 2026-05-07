@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace T3\Size\Service;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Database\Connection as Typo3Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Resource\FileType;
+use TYPO3\CMS\Core\Resource\ProcessedFileRepository;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\StorageRepository;
 use Symfony\Component\Finder\Finder;
@@ -18,12 +23,20 @@ use Symfony\Component\Finder\Finder;
 final class SizeOverviewProvider
 {
     private const NOT_AVAILABLE = 'notAvailable';
+    private const MEDIA_IMAGES = 'images';
+    private const MEDIA_VIDEOS = 'videos';
+    private const MEDIA_DOCUMENTS = 'documents';
+    private const MEDIA_AUDIO = 'audio';
+    private const MEDIA_ARCHIVES = 'archives';
+    private const MEDIA_PROCESSED_IMAGES = 'processedImages';
+    private const MEDIA_OTHER = 'other';
 
     public function __construct(
         private readonly StorageRepository $storageRepository,
         private readonly ConnectionPool $connectionPool,
         private readonly LanguageServiceFactory $languageServiceFactory,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly ProcessedFileRepository $processedFileRepository,
     ) {}
 
     /**
@@ -52,8 +65,38 @@ final class SizeOverviewProvider
      *     items: list<array{name: string, bytes: int|null, label: string}>,
      *     total: array{bytes: int|null, label: string, available: bool}
      *   },
+     *   mediaBreakdown: array{
+     *     storages: list<array{
+     *       name: string,
+     *       total: array{bytes: int, label: string},
+     *       categories: list<array{
+     *         identifier: string,
+     *         iconIdentifier: string,
+     *         label: string,
+     *         bytes: int,
+     *         formattedBytes: string,
+     *         fileCount: int
+     *       }>
+     *     }>
+     *   },
+     *   mediaBreakdownTotal: array{bytes: int, label: string},
      *   database: array{
-     *     connections: list<array{name: string, bytes: int|null, label: string, available: bool}>,
+     *     connections: list<array{
+     *       name: string,
+     *       bytes: int|null,
+     *       label: string,
+     *       available: bool,
+     *       tables: list<array{
+     *         name: string,
+     *         title: string|null,
+     *         iconIdentifier: string,
+     *         usesFallbackIcon: bool,
+     *         rowCount: int|null,
+     *         bytes: int|null,
+     *         formattedBytes: string,
+     *         available: bool
+     *       }>
+     *     }>,
      *     total: array{bytes: int|null, label: string, available: bool}
      *   },
      *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
@@ -64,6 +107,8 @@ final class SizeOverviewProvider
         $code = $this->getCodeOverview();
         $misc = $this->getMiscOverview();
         $storages = $this->getStorageOverview();
+        $mediaBreakdown = $this->getMediaBreakdown();
+        $mediaBreakdownTotal = $this->getMediaBreakdownTotal($mediaBreakdown);
         $database = $this->getDatabaseOverview();
         $totalBytes = (
             ($code['total']['bytes'] ?? 0)
@@ -79,6 +124,8 @@ final class SizeOverviewProvider
             'misc' => $misc,
             'chart' => $chart,
             'storages' => $storages,
+            'mediaBreakdown' => $mediaBreakdown,
+            'mediaBreakdownTotal' => $mediaBreakdownTotal,
             'database' => $database,
             'total' => $total,
         ];
@@ -172,28 +219,31 @@ final class SizeOverviewProvider
     }
 
     /**
-     * @return array{bytes: int|null, label: string, paths: list<string>}
+     * @return array{bytes: int|null, fileCount: int|null, label: string, paths: list<string>}
      */
     private function getStorageMeasurement(ResourceStorage $storage): array
     {
         try {
             if (!$storage->isOnline()) {
-                return [...$this->createUnavailableValue(), 'paths' => []];
+                return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
             }
 
             $paths = $this->getStorageMeasuredPaths($storage);
             if ($paths === []) {
-                return [...$this->createUnavailableValue(), 'paths' => []];
+                return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
             }
 
             $size = 0;
+            $fileCount = 0;
             foreach ($paths as $path) {
-                $size += $this->getFilesystemStorageSize($path);
+                $metrics = $this->getFilesystemStorageMetrics($path);
+                $size += $metrics['bytes'];
+                $fileCount += $metrics['fileCount'];
             }
 
-            return [...$this->createByteValue($size), 'paths' => $paths];
+            return [...$this->createByteValue($size), 'fileCount' => $fileCount, 'paths' => $paths];
         } catch (\Throwable) {
-            return [...$this->createUnavailableValue(), 'paths' => []];
+            return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
         }
     }
 
@@ -235,15 +285,28 @@ final class SizeOverviewProvider
 
     private function getFilesystemStorageSize(string $basePath): int
     {
+        return $this->getFilesystemStorageMetrics($basePath)['bytes'];
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int}
+     */
+    private function getFilesystemStorageMetrics(string $basePath): array
+    {
         $finder = new Finder();
         $finder->files()->in($basePath)->ignoreUnreadableDirs();
 
         $size = 0;
+        $fileCount = 0;
         foreach ($finder as $file) {
             $size += $file->getSize();
+            $fileCount++;
         }
 
-        return $size;
+        return [
+            'bytes' => $size,
+            'fileCount' => $fileCount,
+        ];
     }
 
     /**
@@ -282,7 +345,139 @@ final class SizeOverviewProvider
 
     /**
      * @return array{
-     *   connections: list<array{name: string, bytes: int|null, label: string, available: bool}>,
+     *   storages: list<array{
+     *     name: string,
+     *     total: array{bytes: int, label: string},
+     *     categories: list<array{
+     *       identifier: string,
+     *       iconIdentifier: string,
+     *       label: string,
+     *       bytes: int,
+     *       formattedBytes: string,
+     *       fileCount: int,
+     *       sizeLabel: string
+     *     }>
+     *   }>
+     * }
+     */
+    private function getMediaBreakdown(): array
+    {
+        $storageRows = [];
+
+        try {
+            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file');
+            $rows = $queryBuilder
+                ->select('storage', 'identifier', 'type', 'mime_type', 'extension', 'size')
+                ->from('sys_file')
+                ->executeQuery()
+                ->fetchAllAssociative();
+
+            $storageObjects = [];
+            foreach ($rows as $row) {
+                $storageUid = (int)($row['storage'] ?? 0);
+                if (!isset($storageRows[$storageUid])) {
+                    $storageRows[$storageUid] = $this->createEmptyMediaCategories();
+                }
+                if (!array_key_exists($storageUid, $storageObjects)) {
+                    $storageObjects[$storageUid] = $this->storageRepository->findByUid($storageUid);
+                }
+                $category = $this->resolveMediaCategory(
+                    (int)($row['type'] ?? 0),
+                    (string)($row['mime_type'] ?? ''),
+                    (string)($row['extension'] ?? ''),
+                );
+                $storageRows[$storageUid][$category]['bytes'] += $this->resolveIndexedFileSize(
+                    $storageObjects[$storageUid],
+                    (string)($row['identifier'] ?? ''),
+                    (int)($row['size'] ?? 0),
+                );
+                $storageRows[$storageUid][$category]['fileCount']++;
+            }
+        } catch (\Throwable) {
+            return ['storages' => []];
+        }
+
+        foreach ($this->getProcessedImagesMeasurementByStorage() as $storageUid => $processedFiles) {
+            if (!isset($storageRows[$storageUid])) {
+                $storageRows[$storageUid] = $this->createEmptyMediaCategories();
+            }
+            $storageRows[$storageUid][self::MEDIA_PROCESSED_IMAGES]['bytes'] = $processedFiles['bytes'];
+            $storageRows[$storageUid][self::MEDIA_PROCESSED_IMAGES]['fileCount'] = $processedFiles['fileCount'];
+        }
+
+        $storages = [];
+        foreach ($this->storageRepository->findAll() as $storage) {
+            $categories = $storageRows[$storage->getUid()] ?? $this->createEmptyMediaCategories();
+            $storageMeasurement = $this->getStorageMeasurement($storage);
+            $categorizedBytes = array_sum(array_map(static fn(array $category): int => $category['bytes'], $categories));
+            $categorizedFileCount = array_sum(array_map(static fn(array $category): int => $category['fileCount'], $categories));
+
+            if ($storageMeasurement['bytes'] !== null && $storageMeasurement['bytes'] > $categorizedBytes) {
+                $categories[self::MEDIA_OTHER]['bytes'] += $storageMeasurement['bytes'] - $categorizedBytes;
+            }
+            if ($storageMeasurement['fileCount'] !== null && $storageMeasurement['fileCount'] > $categorizedFileCount) {
+                $categories[self::MEDIA_OTHER]['fileCount'] += $storageMeasurement['fileCount'] - $categorizedFileCount;
+            }
+
+            $categories = array_filter(
+                $categories,
+                static fn(array $category): bool => $category['bytes'] > 0,
+            );
+            uasort(
+                $categories,
+                static fn(array $left, array $right): int => $right['bytes'] <=> $left['bytes'],
+            );
+
+            $totalBytes = array_sum(array_map(static fn(array $category): int => $category['bytes'], $categories));
+            foreach ($categories as &$category) {
+                $category['formattedBytes'] = $this->formatBytes($category['bytes']);
+                $category['sizeLabel'] = sprintf(
+                    '%s (%s)',
+                    $category['formattedBytes'],
+                    $this->formatPercentage($category['bytes'], $totalBytes),
+                );
+            }
+            unset($category);
+
+            $storages[] = [
+                'name' => $storage->getName() !== '' ? $storage->getName() : $this->translate('module.storageStatistics.unnamedStorage'),
+                'total' => $this->createByteValue($totalBytes),
+                'categories' => array_values($categories),
+            ];
+        }
+
+        return ['storages' => $storages];
+    }
+
+    /**
+     * @param array{
+     *   storages: list<array{
+     *     name: string,
+     *     total: array{bytes: int, label: string},
+     *     categories: list<array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string}>
+     *   }>
+     * } $mediaBreakdown
+     * @return array{bytes: int, label: string}
+     */
+    private function getMediaBreakdownTotal(array $mediaBreakdown): array
+    {
+        $bytes = array_sum(array_map(
+            static fn(array $storage): int => $storage['total']['bytes'],
+            $mediaBreakdown['storages'],
+        ));
+
+        return $this->createByteValue($bytes);
+    }
+
+    /**
+     * @return array{
+     *   connections: list<array{
+     *     name: string,
+     *     bytes: int|null,
+     *     label: string,
+     *     available: bool,
+     *     tables: list<array{name: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, available: bool}>
+     *   }>,
      *   total: array{bytes: int|null, label: string, available: bool}
      * }
      */
@@ -311,48 +506,160 @@ final class SizeOverviewProvider
     }
 
     /**
-     * @return array{bytes: int|null, label: string, available: bool}
+     * @return array{
+     *   bytes: int|null,
+     *   label: string,
+     *   available: bool,
+     *   tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, available: bool}>
+     * }
      */
     private function getSingleDatabaseOverview(string $connectionName): array
     {
         try {
             $connection = $this->connectionPool->getConnectionByName($connectionName);
-            $platform = $connection->getDatabasePlatform();
+            $tables = $this->getDatabaseTablesOverview($connection);
+            $availableTables = array_filter(
+                $tables,
+                static fn(array $table): bool => $table['available'] && $table['bytes'] !== null,
+            );
 
-            if ($platform instanceof AbstractMySQLPlatform) {
-                $databaseName = (string)($connection->getParams()['dbname'] ?? '');
-                if ($databaseName === '') {
-                    return [...$this->createUnavailableValue(), 'available' => false];
+            if ($availableTables !== []) {
+                $bytes = array_sum(array_map(static fn(array $table): int => (int)$table['bytes'], $availableTables));
+                foreach ($tables as &$table) {
+                    if ($table['available'] && $table['bytes'] !== null) {
+                        $table['sizeLabel'] = sprintf(
+                            '%s (%s)',
+                            $table['formattedBytes'],
+                            $this->formatPercentage((int)$table['bytes'], $bytes),
+                        );
+                    }
                 }
+                unset($table);
 
-                $bytes = $connection->fetchOne(
-                    'SELECT COALESCE(SUM(data_length + index_length), 0) FROM information_schema.TABLES WHERE table_schema = ?',
-                    [$databaseName],
-                );
-
-                return [...$this->createByteValue((int)$bytes), 'available' => true];
+                return [...$this->createByteValue($bytes), 'available' => true, 'tables' => $tables];
             }
 
-            if ($platform instanceof PostgreSQLPlatform) {
-                $bytes = $connection->fetchOne('SELECT pg_database_size(current_database())');
-
-                return [...$this->createByteValue((int)$bytes), 'available' => true];
-            }
-
-            if ($platform instanceof SQLitePlatform) {
-                $params = $connection->getParams();
-                $path = (string)($params['path'] ?? '');
-                if ($path === '' || !is_file($path) || !is_readable($path)) {
-                    return [...$this->createUnavailableValue(), 'available' => false];
-                }
-
-                return [...$this->createByteValue((int)filesize($path)), 'available' => true];
+            if ($tables !== []) {
+                return [...$this->createUnavailableValue(), 'available' => false, 'tables' => $tables];
             }
         } catch (\Throwable) {
-            return [...$this->createUnavailableValue(), 'available' => false];
+            return [...$this->createUnavailableValue(), 'available' => false, 'tables' => []];
         }
 
-        return [...$this->createUnavailableValue(), 'available' => false];
+        return [...$this->createUnavailableValue(), 'available' => false, 'tables' => []];
+    }
+
+    /**
+     * @return list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, available: bool}>
+     */
+    private function getDatabaseTablesOverview(Typo3Connection $connection): array
+    {
+        $schemaManager = $connection->createSchemaManager();
+        $tableNames = $schemaManager->listTableNames();
+        $tableSizes = $this->getDatabaseTableSizes($connection, $tableNames);
+        $tables = [];
+
+        foreach ($tableNames as $tableName) {
+            $rowCount = $this->getTableRowCount($connection, $tableName);
+            $bytes = $tableSizes[$tableName] ?? null;
+            $iconIdentifier = $this->getTableIconIdentifier($tableName);
+            $tables[] = [
+                'name' => $tableName,
+                'title' => $this->getTableTitle($tableName),
+                'iconIdentifier' => $iconIdentifier,
+                'usesFallbackIcon' => $iconIdentifier === 'actions-database',
+                'rowCount' => $rowCount,
+                'rowCountLabel' => $rowCount !== null ? (string)$rowCount : $this->translate(self::NOT_AVAILABLE),
+                'bytes' => $bytes,
+                'formattedBytes' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
+                'sizeLabel' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
+                'available' => $bytes !== null,
+            ];
+        }
+
+        $tables = array_values(array_filter(
+            $tables,
+            static fn(array $table): bool => $table['rowCount'] !== 0 && $table['bytes'] !== 0,
+        ));
+
+        usort($tables, static function (array $left, array $right): int {
+            if ($left['bytes'] !== null && $right['bytes'] !== null) {
+                return $right['bytes'] <=> $left['bytes'];
+            }
+            if ($left['bytes'] !== null) {
+                return -1;
+            }
+            if ($right['bytes'] !== null) {
+                return 1;
+            }
+
+            return strcasecmp($left['name'], $right['name']);
+        });
+
+        return $tables;
+    }
+
+    /**
+     * @param list<string> $tableNames
+     * @return array<string, int>
+     */
+    private function getDatabaseTableSizes(Typo3Connection $connection, array $tableNames): array
+    {
+        $platform = $connection->getDatabasePlatform();
+
+        if ($platform instanceof AbstractMySQLPlatform) {
+            $databaseName = (string)($connection->getParams()['dbname'] ?? '');
+            if ($databaseName === '') {
+                return [];
+            }
+
+            $rows = $connection->fetchAllAssociative(
+                'SELECT table_name, COALESCE(data_length + index_length, 0) AS size_bytes FROM information_schema.TABLES WHERE table_schema = ?',
+                [$databaseName],
+            );
+
+            $sizes = [];
+            foreach ($rows as $row) {
+                $sizes[(string)$row['table_name']] = (int)$row['size_bytes'];
+            }
+
+            return $sizes;
+        }
+
+        if ($platform instanceof PostgreSQLPlatform) {
+            $sizes = [];
+            foreach ($tableNames as $tableName) {
+                $sizes[$tableName] = (int)$connection->fetchOne(
+                    'SELECT pg_total_relation_size(?)',
+                    [$tableName],
+                    [Connection::PARAM_STR],
+                );
+            }
+
+            return $sizes;
+        }
+
+        if ($platform instanceof SQLitePlatform) {
+            return [];
+        }
+
+        return [];
+    }
+
+    private function getTableRowCount(Typo3Connection $connection, string $tableName): ?int
+    {
+        try {
+            $queryBuilder = $connection->createQueryBuilder();
+            $count = $queryBuilder
+                ->selectLiteral('COUNT(*)')
+                ->from($tableName)
+                ->executeQuery()
+                ->fetchOne();
+
+            return (int)$count;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -707,10 +1014,305 @@ final class SizeOverviewProvider
         return number_format($value, $precision, '.', ' ') . ' ' . $units[$unitIndex];
     }
 
+    private function formatPercentage(int $bytes, int $totalBytes): string
+    {
+        $percentage = $totalBytes > 0 ? ($bytes / $totalBytes * 100) : 0.0;
+
+        return number_format($percentage, 1, '.', '') . '%';
+    }
+
     private function translate(string $key): string
     {
         return $this->languageServiceFactory
             ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
             ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
+    }
+
+    private function resolveLabel(string $label): string
+    {
+        $languageService = $this->languageServiceFactory->createFromUserPreferences($GLOBALS['BE_USER'] ?? null);
+
+        if (str_starts_with($label, 'LLL:')) {
+            return $languageService->sL($label) ?: $label;
+        }
+
+        if (preg_match('/^([a-z0-9_.-]+):([a-z0-9_.-]+)$/i', $label, $matches) === 1) {
+            return (string)($languageService->translate($matches[2], $matches[1]) ?? $label);
+        }
+
+        return $label;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getMediaCategoryOrder(): array
+    {
+        return [
+            self::MEDIA_IMAGES,
+            self::MEDIA_VIDEOS,
+            self::MEDIA_DOCUMENTS,
+            self::MEDIA_AUDIO,
+            self::MEDIA_ARCHIVES,
+            self::MEDIA_OTHER,
+            self::MEDIA_PROCESSED_IMAGES,
+        ];
+    }
+
+    private function resolveMediaCategory(int $fileType, string $mimeType, string $extension): string
+    {
+        $normalizedMimeType = strtolower(trim($mimeType));
+        $normalizedExtension = strtolower(trim($extension, ". \t\n\r\0\x0B"));
+
+        return match ($fileType) {
+            FileType::IMAGE->value => self::MEDIA_IMAGES,
+            FileType::VIDEO->value => self::MEDIA_VIDEOS,
+            FileType::AUDIO->value => self::MEDIA_AUDIO,
+            FileType::TEXT->value => self::MEDIA_DOCUMENTS,
+            FileType::APPLICATION->value => $this->resolveApplicationMediaCategory($normalizedMimeType, $normalizedExtension),
+            default => self::MEDIA_OTHER,
+        };
+    }
+
+    private function resolveApplicationMediaCategory(string $mimeType, string $extension): string
+    {
+        if ($this->isDocumentMimeType($mimeType) || $this->isDocumentExtension($extension)) {
+            return self::MEDIA_DOCUMENTS;
+        }
+
+        if ($this->isArchiveMimeType($mimeType) || $this->isArchiveExtension($extension)) {
+            return self::MEDIA_ARCHIVES;
+        }
+
+        return self::MEDIA_OTHER;
+    }
+
+    private function isDocumentMimeType(string $mimeType): bool
+    {
+        if ($mimeType === '') {
+            return false;
+        }
+
+        return str_starts_with($mimeType, 'text/')
+            || in_array($mimeType, [
+                'application/pdf',
+                'application/rtf',
+                'application/msword',
+                'application/vnd.ms-excel',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.oasis.opendocument.text',
+                'application/vnd.oasis.opendocument.spreadsheet',
+                'application/vnd.oasis.opendocument.presentation',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'application/vnd.apple.pages',
+                'application/vnd.apple.numbers',
+                'application/vnd.apple.keynote',
+                'application/epub+zip',
+                'application/json',
+                'application/xml',
+                'application/yaml',
+            ], true);
+    }
+
+    private function isDocumentExtension(string $extension): bool
+    {
+        return in_array($extension, [
+            'txt', 'text', 'md', 'rst', 'rtf', 'html', 'htm', 'pdf', 'doc', 'docx', 'dot', 'dotx',
+            'xls', 'xlsx', 'csv', 'ods', 'ppt', 'pptx', 'odp', 'odt', 'pages',
+            'numbers', 'key', 'epub', 'json', 'xml', 'yml', 'yaml',
+        ], true);
+    }
+
+    private function isArchiveMimeType(string $mimeType): bool
+    {
+        if ($mimeType === '') {
+            return false;
+        }
+
+        return in_array($mimeType, [
+            'application/zip',
+            'application/x-zip-compressed',
+            'application/x-tar',
+            'application/gzip',
+            'application/x-gzip',
+            'application/x-7z-compressed',
+            'application/x-rar-compressed',
+            'application/vnd.rar',
+            'application/x-bzip2',
+            'application/x-xz',
+        ], true);
+    }
+
+    private function isArchiveExtension(string $extension): bool
+    {
+        return in_array($extension, [
+            'zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', '7z', 'rar',
+        ], true);
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int}
+     */
+    private function getProcessedImagesMeasurementByStorage(): array
+    {
+        $measurements = [];
+
+        try {
+            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_processedfile');
+            $rows = $queryBuilder
+                ->select('uid', 'storage')
+                ->from('sys_file_processedfile')
+                ->executeQuery()
+                ->fetchAllAssociative();
+
+            foreach ($rows as $row) {
+                $storageUid = (int)($row['storage'] ?? 0);
+                if (!isset($measurements[$storageUid])) {
+                    $measurements[$storageUid] = ['bytes' => 0, 'fileCount' => 0];
+                }
+
+                $processedFile = $this->processedFileRepository->findByUid((int)$row['uid']);
+                $localPath = $this->resolveProcessedFilePath($processedFile);
+                if ($localPath === null) {
+                    continue;
+                }
+
+                $measurements[$storageUid]['bytes'] += (int)filesize($localPath);
+                $measurements[$storageUid]['fileCount']++;
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $measurements;
+    }
+
+    private function resolveProcessedFilePath(ProcessedFile $processedFile): ?string
+    {
+        try {
+            if (!$processedFile->exists()) {
+                return null;
+            }
+
+            $publicUrl = null;
+            try {
+                $publicUrl = $processedFile->getPublicUrl();
+            } catch (\Throwable) {
+                $publicUrl = null;
+            }
+
+            if (is_string($publicUrl) && $publicUrl !== '') {
+                $candidate = Environment::getPublicPath() . '/' . ltrim($publicUrl, '/');
+                $resolvedPath = $this->normalizePath($candidate);
+                if ($resolvedPath !== null && is_file($resolvedPath) && is_readable($resolvedPath)) {
+                    return $resolvedPath;
+                }
+            }
+
+            $identifier = $processedFile->getIdentifier();
+            $storageBasePath = $this->resolveLocalStorageBasePath($processedFile->getStorage());
+            if ($storageBasePath === null || $identifier === '') {
+                return null;
+            }
+
+            $resolvedPath = $this->normalizePath($storageBasePath . '/' . ltrim($identifier, '/'));
+
+            return $resolvedPath !== null && is_file($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveIndexedFileSize(?ResourceStorage $storage, string $identifier, int $fallbackSize): int
+    {
+        if ($storage === null || $identifier === '') {
+            return max(0, $fallbackSize);
+        }
+
+        try {
+            $fileInfo = $storage->getFileInfoByIdentifier($identifier, ['size']);
+            $size = (int)($fileInfo['size'] ?? $fallbackSize);
+
+            return max(0, $size);
+        } catch (\Throwable) {
+            return max(0, $fallbackSize);
+        }
+    }
+
+    /**
+     * @return array<string, array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string}>
+     */
+    private function createEmptyMediaCategories(): array
+    {
+        $categories = [];
+        foreach ($this->getMediaCategoryOrder() as $identifier) {
+            $categories[$identifier] = [
+                'identifier' => $identifier,
+                'iconIdentifier' => $this->getMediaCategoryIconIdentifier($identifier),
+                'label' => $this->translate('media.' . $identifier),
+                'bytes' => 0,
+                'formattedBytes' => $this->formatBytes(0),
+                'fileCount' => 0,
+                'sizeLabel' => $this->formatBytes(0) . ' (0.0%)',
+            ];
+        }
+
+        return $categories;
+    }
+
+    private function getMediaCategoryIconIdentifier(string $identifier): string
+    {
+        return match ($identifier) {
+            self::MEDIA_IMAGES => 'actions-file-image',
+            self::MEDIA_VIDEOS => 'actions-file-video',
+            self::MEDIA_DOCUMENTS => 'actions-file-pdf',
+            self::MEDIA_AUDIO => 'actions-file-audio',
+            self::MEDIA_ARCHIVES => 'actions-archive',
+            self::MEDIA_PROCESSED_IMAGES => 'form-image-upload',
+            self::MEDIA_OTHER => 'actions-file',
+            default => 'actions-file',
+        };
+    }
+
+    private function getTableIconIdentifier(string $tableName): string
+    {
+        $ctrl = $GLOBALS['TCA'][$tableName]['ctrl'] ?? null;
+        if (!is_array($ctrl)) {
+            return 'actions-database';
+        }
+
+        $typeIconClasses = $ctrl['typeicon_classes'] ?? null;
+        if (is_array($typeIconClasses) && is_string($typeIconClasses['default'] ?? null) && $typeIconClasses['default'] !== '') {
+            return $typeIconClasses['default'];
+        }
+
+        if (is_string($ctrl['iconfile'] ?? null) && $ctrl['iconfile'] !== '') {
+            return 'tcarecords-' . $tableName . '-default';
+        }
+
+        return 'actions-database';
+    }
+
+    private function getTableTitle(string $tableName): ?string
+    {
+        $ctrl = $GLOBALS['TCA'][$tableName]['ctrl'] ?? null;
+        if (!is_array($ctrl)) {
+            return null;
+        }
+
+        $title = $ctrl['title'] ?? null;
+        if (!is_string($title) || $title === '') {
+            return null;
+        }
+
+        $resolvedTitle = trim($this->resolveLabel($title));
+
+        if ($resolvedTitle === '' || $resolvedTitle === $tableName) {
+            return null;
+        }
+
+        return $resolvedTitle;
     }
 }

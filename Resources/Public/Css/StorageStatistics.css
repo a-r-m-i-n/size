@@ -110,6 +110,10 @@
     gap: 1rem;
 }
 
+.size-storage-full-width-card {
+    width: 100%;
+}
+
 .size-storage-detail-card h2 {
     margin-top: 0;
     margin-bottom: 0.75rem;
@@ -152,6 +156,41 @@
     font-size: .9rem;
 }
 
+.size-storage-subsection + .size-storage-subsection,
+.size-storage-detail-list + .size-storage-subsection {
+    margin-top: 1rem;
+}
+
+.size-storage-subheading {
+    margin: 0 0 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.size-storage-connection-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.size-storage-connection-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+    margin-bottom: 0.65rem;
+}
+
+.size-storage-connection-total {
+    font-size: 0.85rem;
+    color: var(--size-storage-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.size-storage-note {
+    margin-top: 1rem;
+    margin-bottom: 0;
+}
+
 .size-storage-detail-list {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -167,6 +206,33 @@
 .size-storage-detail-list dd {
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.size-storage-table {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.size-storage-table th,
+.size-storage-table td {
+    vertical-align: middle;
+}
+
+.size-storage-table th:last-child,
+.size-storage-table td:last-child,
+.size-storage-table th:nth-last-child(2),
+.size-storage-table td:nth-last-child(2) {
+    font-variant-numeric: tabular-nums;
+}
+
+.size-storage-table-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.size-storage-table-icon-muted {
+    color: var(--size-storage-text-muted);
 }
 
 .size-storage-color-media {

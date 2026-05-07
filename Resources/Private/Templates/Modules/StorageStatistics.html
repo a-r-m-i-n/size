@@ -141,5 +141,130 @@
             <p class="text-muted"><f:translate key="module.storageStatistics.miscDescription" extensionName="size" /></p>
         </section>
     </div>
+
+    <section class="size-storage-detail-card size-storage-full-width-card">
+        <h2 class="size-storage-detail-heading">
+            <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
+                <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
+            </span>
+            <span><f:translate key="section.mediaBreakdown" extensionName="size" /></span>
+        </h2>
+        <f:if condition="{mediaBreakdown.storages -> f:count()} > 0">
+            <f:then>
+                <div class="size-storage-connection-list">
+                    <f:for each="{mediaBreakdown.storages}" as="storage">
+                        <section class="size-storage-subsection">
+                            <div class="size-storage-connection-header">
+                                <h3 class="size-storage-subheading">{storage.name}</h3>
+                                <span class="size-storage-connection-total">{storage.total.label}</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover size-storage-table">
+                                    <thead>
+                                        <tr>
+                                            <th><f:translate key="section.fileadmin" extensionName="size" /></th>
+                                            <th class="text-end"><f:translate key="table.files" extensionName="size" /></th>
+                                            <th class="text-end"><f:translate key="table.size" extensionName="size" /></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <f:for each="{storage.categories}" as="mediaCategory">
+                                            <tr>
+                                                <td>
+                                                    <span class="size-storage-table-label">
+                                                        <span class="size-storage-table-icon size-storage-detail-icon-media">
+                                                            <core:icon identifier="{mediaCategory.iconIdentifier}" alternativeMarkupIdentifier="inline" size="small" />
+                                                        </span>
+                                                        <span>{mediaCategory.label}</span>
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">{mediaCategory.fileCount}</td>
+                                                <td class="text-end">{mediaCategory.sizeLabel}</td>
+                                            </tr>
+                                        </f:for>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </f:for>
+                </div>
+            </f:then>
+            <f:else>
+                <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+            </f:else>
+        </f:if>
+    </section>
+
+    <section class="size-storage-detail-card size-storage-full-width-card">
+        <h2 class="size-storage-detail-heading">
+            <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
+                <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
+            </span>
+            <span><f:translate key="section.databaseTables" extensionName="size" /></span>
+        </h2>
+        <f:if condition="{database.connections -> f:count()} > 0">
+            <f:then>
+                <div class="size-storage-connection-list">
+                    <f:for each="{database.connections}" as="connection">
+                        <section class="size-storage-subsection">
+                            <div class="size-storage-connection-header">
+                                <h3 class="size-storage-subheading">{connection.name}</h3>
+                                <span class="size-storage-connection-total">{connection.label}</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover size-storage-table">
+                                    <thead>
+                                        <tr>
+                                            <th><f:translate key="table.table" extensionName="size" /></th>
+                                            <th class="text-end"><f:translate key="table.rows" extensionName="size" /></th>
+                                            <th class="text-end"><f:translate key="table.size" extensionName="size" /></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <f:for each="{connection.tables}" as="tableRow">
+                                            <tr>
+                                                <td>
+                                                    <span class="size-storage-table-label">
+                                                        <f:if condition="{tableRow.usesFallbackIcon}">
+                                                            <f:then>
+                                                                <span class="size-storage-table-icon size-storage-table-icon-muted">
+                                                                    <core:icon identifier="{tableRow.iconIdentifier}" alternativeMarkupIdentifier="inline" size="small" />
+                                                                </span>
+                                                            </f:then>
+                                                            <f:else>
+                                                                <span class="size-storage-table-icon size-storage-detail-icon-database">
+                                                                    <core:icon identifier="{tableRow.iconIdentifier}" alternativeMarkupIdentifier="inline" size="small" />
+                                                                </span>
+                                                            </f:else>
+                                                        </f:if>
+                                                        <span>
+                                                            <f:if condition="{tableRow.title}">
+                                                                <f:then>
+                                                                    {tableRow.name} ({tableRow.title})
+                                                                </f:then>
+                                                                <f:else>{tableRow.name}</f:else>
+                                                            </f:if>
+                                                        </span>
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">{tableRow.rowCountLabel}</td>
+                                                <td class="text-end">{tableRow.sizeLabel}</td>
+                                            </tr>
+                                        </f:for>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </f:for>
+                </div>
+                <p class="text-muted size-storage-note">
+                    <f:translate key="database.hiddenEmptyTablesNotice" extensionName="size" />
+                </p>
+            </f:then>
+            <f:else>
+                <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+            </f:else>
+        </f:if>
+    </section>
 </div>
 </html>
