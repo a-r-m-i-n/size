@@ -51,6 +51,27 @@
             <trans-unit id="settings.maximumTotalStorage.description">
                 <source>Optional maximum value for the total storage display, for example 250 MB, 1 GB or 1.5 GB.</source>
             </trans-unit>
+            <trans-unit id="module.storageStatistics.title">
+                <source>Extended storage statistics</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.kicker">
+                <source>Storage usage overview</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.barAriaLabel">
+                <source>Storage usage distribution by category</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.available">
+                <source>Available</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.unnamedStorage">
+                <source>Unnamed storage</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.miscDescription">
+                <source>Includes project root files plus the config and var directories.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.openStorageStatistics">
+                <source>Extended storage usage statistics</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

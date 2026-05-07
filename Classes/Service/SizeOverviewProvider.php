@@ -30,6 +30,24 @@ final class SizeOverviewProvider
      * @return array{
      *   code: array<string, array{bytes: int|null, label: string}>,
      *   misc: array{bytes: int, label: string},
+     *   chart: array{
+     *     categories: list<array{
+     *       identifier: string,
+     *       label: string,
+     *       bytes: int,
+     *       formattedBytes: string,
+     *       percentage: float,
+     *       colorClass: string
+     *     }>,
+     *     maximumBytes: int|null,
+     *     referenceBytes: int,
+     *     totalPercentage: float,
+     *     availableBytes: int|null,
+     *     availablePercentage: float|null,
+     *     availableLabel: string|null,
+     *     showAvailableSegment: bool,
+     *     isMaximumConfigured: bool
+     *   },
      *   storages: array{
      *     items: list<array{name: string, bytes: int|null, label: string}>,
      *     total: array{bytes: int|null, label: string, available: bool}
@@ -54,10 +72,12 @@ final class SizeOverviewProvider
             + ($database['total']['bytes'] ?? 0)
         );
         $total = $this->createTotalValue($totalBytes);
+        $chart = $this->createChartData($storages, $database, $code, $misc, $totalBytes);
 
         return [
             'code' => $code,
             'misc' => $misc,
+            'chart' => $chart,
             'storages' => $storages,
             'database' => $database,
             'total' => $total,
@@ -495,6 +515,116 @@ final class SizeOverviewProvider
             ),
             'highlightClass' => $statusClass !== '' ? 'text-' . $statusClass : '',
             'badgeClass' => $statusClass !== '' ? 'badge-' . $statusClass : '',
+        ];
+    }
+
+    /**
+     * @param array{
+     *   items: list<array{name: string, bytes: int|null, label: string}>,
+     *   total: array{bytes: int|null, label: string, available: bool}
+     * } $storages
+     * @param array{
+     *   connections: list<array{name: string, bytes: int|null, label: string, available: bool}>,
+     *   total: array{bytes: int|null, label: string, available: bool}
+     * } $database
+     * @param array<string, array{bytes: int|null, label: string}> $code
+     * @param array{bytes: int, label: string} $misc
+     * @return array{
+     *   categories: list<array{
+     *     identifier: string,
+     *     label: string,
+     *     bytes: int,
+     *     formattedBytes: string,
+     *     percentage: float,
+     *     colorClass: string
+     *   }>,
+     *   maximumBytes: int|null,
+     *   referenceBytes: int,
+     *   totalPercentage: float,
+     *   availableBytes: int|null,
+     *   availablePercentage: float|null,
+     *   availableLabel: string|null,
+     *   showAvailableSegment: bool,
+     *   isMaximumConfigured: bool
+     * }
+     */
+    private function createChartData(array $storages, array $database, array $code, array $misc, int $totalBytes): array
+    {
+        $maximumBytes = $this->getConfiguredMaximumTotalStorageBytes();
+        $visualReferenceBytes = $maximumBytes !== null
+            ? max($maximumBytes, $totalBytes, 1)
+            : max($totalBytes, 1);
+        $categories = [
+            $this->createChartCategory(
+                'storages',
+                $this->translate('section.fileadmin'),
+                (int)($storages['total']['bytes'] ?? 0),
+                'size-storage-color-media',
+                $visualReferenceBytes,
+            ),
+            $this->createChartCategory(
+                'database',
+                $this->translate('section.database'),
+                (int)($database['total']['bytes'] ?? 0),
+                'size-storage-color-database',
+                $visualReferenceBytes,
+            ),
+            $this->createChartCategory(
+                'code',
+                $this->translate('section.code'),
+                (int)($code['total']['bytes'] ?? 0),
+                'size-storage-color-code',
+                $visualReferenceBytes,
+            ),
+            $this->createChartCategory(
+                'misc',
+                $this->translate('section.misc'),
+                $misc['bytes'],
+                'size-storage-color-misc',
+                $visualReferenceBytes,
+            ),
+        ];
+
+        $showAvailableSegment = $maximumBytes !== null && $totalBytes < $maximumBytes;
+        $availableBytes = $showAvailableSegment ? $maximumBytes - $totalBytes : null;
+
+        return [
+            'categories' => $categories,
+            'maximumBytes' => $maximumBytes,
+            'referenceBytes' => $visualReferenceBytes,
+            'totalPercentage' => $maximumBytes !== null && $maximumBytes > 0 ? ($totalBytes / $maximumBytes * 100) : 100.0,
+            'availableBytes' => $availableBytes,
+            'availablePercentage' => $availableBytes !== null ? ($availableBytes / $visualReferenceBytes * 100) : null,
+            'availableLabel' => $availableBytes !== null ? $this->formatBytes($availableBytes) : null,
+            'showAvailableSegment' => $showAvailableSegment,
+            'isMaximumConfigured' => $maximumBytes !== null,
+        ];
+    }
+
+    /**
+     * @return array{
+     *   identifier: string,
+     *   label: string,
+     *   bytes: int,
+     *   formattedBytes: string,
+     *   percentage: float,
+     *   colorClass: string
+     * }
+     */
+    private function createChartCategory(
+        string $identifier,
+        string $label,
+        int $bytes,
+        string $colorClass,
+        int $referenceBytes,
+    ): array {
+        return [
+            'identifier' => $identifier,
+            'label' => $label,
+            'bytes' => $bytes,
+            'formattedBytes' => $this->formatBytes($bytes),
+            'percentage' => $bytes > 0 ? ($bytes / max($referenceBytes, 1) * 100) : 0.0,
+            'colorClass' => $colorClass,
         ];
     }
 

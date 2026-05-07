@@ -1,0 +1,145 @@
+<html xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:asset.css
+    identifier="size-storage-statistics"
+    href="EXT:size/Resources/Public/Css/StorageStatistics.css"
+/>
+
+<div class="module-body size-storage-module">
+    <div class="size-storage-card">
+        <div class="size-storage-card-header">
+            <div>
+                <p class="size-storage-kicker"><f:translate key="module.storageStatistics.kicker" extensionName="size" /></p>
+                <h1 class="size-storage-title"><f:translate key="module.storageStatistics.title" extensionName="size" /></h1>
+            </div>
+            <div class="size-storage-total">
+                <span class="size-storage-total-label"><f:translate key="section.total" extensionName="size" /></span>
+                <strong class="{total.highlightClass}">{total.displayLabel}</strong>
+            </div>
+        </div>
+
+        <div class="size-storage-bar-wrapper">
+            <div class="size-storage-bar" role="img" aria-label="{f:translate(key: 'module.storageStatistics.barAriaLabel', extensionName: 'size')}">
+                <f:for each="{chart.categories}" as="category">
+                    <f:if condition="{category.bytes} > 0">
+                        <span
+                            class="size-storage-bar-segment {category.colorClass}"
+                            title="{category.label}: {category.formattedBytes}"
+                            style="width: {category.percentage}%"
+                        ></span>
+                    </f:if>
+                </f:for>
+                <f:if condition="{chart.showAvailableSegment}">
+                    <span
+                        class="size-storage-bar-segment size-storage-color-available"
+                        title="{f:translate(key: 'module.storageStatistics.available', extensionName: 'size')}: {chart.availableLabel}"
+                        style="width: {chart.availablePercentage}%"
+                    ></span>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="size-storage-legend">
+            <f:for each="{chart.categories}" as="category">
+                <div class="size-storage-legend-item">
+                    <span class="size-storage-legend-swatch {category.colorClass}"></span>
+                    <span class="size-storage-legend-text">
+                        <strong>{category.label}</strong>
+                        <span>{category.formattedBytes}</span>
+                    </span>
+                </div>
+            </f:for>
+            <f:if condition="{chart.showAvailableSegment}">
+                <div class="size-storage-legend-item">
+                    <span class="size-storage-legend-swatch size-storage-color-available"></span>
+                    <span class="size-storage-legend-text">
+                        <strong><f:translate key="module.storageStatistics.available" extensionName="size" /></strong>
+                        <span>{chart.availableLabel}</span>
+                    </span>
+                </div>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="size-storage-grid">
+        <section class="size-storage-detail-card">
+            <h2 class="size-storage-detail-heading">
+                <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
+                    <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.fileadmin" extensionName="size" /></span>
+            </h2>
+            <p class="size-storage-detail-total">{storages.total.label}</p>
+            <f:if condition="{storages.items -> f:count()} > 0">
+                <f:then>
+                    <dl class="size-storage-detail-list">
+                        <f:for each="{storages.items}" as="storage">
+                            <dt>
+                                <f:if condition="{storage.name}">
+                                    <f:then>{storage.name}</f:then>
+                                    <f:else><f:translate key="module.storageStatistics.unnamedStorage" extensionName="size" /></f:else>
+                                </f:if>
+                            </dt>
+                            <dd>{storage.label}</dd>
+                        </f:for>
+                    </dl>
+                </f:then>
+                <f:else>
+                    <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+                </f:else>
+            </f:if>
+        </section>
+
+        <section class="size-storage-detail-card">
+            <h2 class="size-storage-detail-heading">
+                <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
+                    <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.database" extensionName="size" /></span>
+            </h2>
+            <p class="size-storage-detail-total">{database.total.label}</p>
+            <f:if condition="{database.connections -> f:count()} > 0">
+                <f:then>
+                    <dl class="size-storage-detail-list">
+                        <f:for each="{database.connections}" as="connection">
+                            <dt>{connection.name}</dt>
+                            <dd>{connection.label}</dd>
+                        </f:for>
+                    </dl>
+                </f:then>
+                <f:else>
+                    <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+                </f:else>
+            </f:if>
+        </section>
+
+        <section class="size-storage-detail-card">
+            <h2 class="size-storage-detail-heading">
+                <span class="size-storage-detail-icon size-storage-detail-icon-code me-1">
+                    <core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.code" extensionName="size" /></span>
+            </h2>
+            <p class="size-storage-detail-total">{code.total.label}</p>
+            <dl class="size-storage-detail-list">
+                <dt><f:translate key="code.vendor" extensionName="size" /></dt>
+                <dd>{code.vendor.label}</dd>
+                <dt><f:translate key="code.extensions" extensionName="size" /></dt>
+                <dd>{code.extensions.label}</dd>
+                <dt><f:translate key="code.dependencies" extensionName="size" /></dt>
+                <dd>{code.dependencies.label}</dd>
+            </dl>
+        </section>
+
+        <section class="size-storage-detail-card">
+            <h2 class="size-storage-detail-heading">
+                <span class="size-storage-detail-icon size-storage-detail-icon-misc me-1">
+                    <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.misc" extensionName="size" /></span>
+            </h2>
+            <p class="size-storage-detail-total">{misc.label}</p>
+            <p class="text-muted"><f:translate key="module.storageStatistics.miscDescription" extensionName="size" /></p>
+        </section>
+    </div>
+</div>
+</html>
