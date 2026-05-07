@@ -14,11 +14,10 @@ use TYPO3\CMS\Core\Database\Connection as Typo3Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Resource\FileType;
-use TYPO3\CMS\Core\Resource\ProcessedFileRepository;
-use TYPO3\CMS\Core\Resource\ProcessedFile;
+use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\StorageRepository;
-use Symfony\Component\Finder\Finder;
+use Symfony\Component\Process\Process;
 
 final class SizeOverviewProvider
 {
@@ -31,12 +30,86 @@ final class SizeOverviewProvider
     private const MEDIA_PROCESSED_IMAGES = 'processedImages';
     private const MEDIA_OTHER = 'other';
 
+    /**
+     * @var array{
+     *   code: array<string, array{bytes: int|null, label: string}>,
+     *   misc: array{bytes: int, label: string},
+     *   chart: array{
+     *     categories: list<array{
+     *       identifier: string,
+     *       label: string,
+     *       bytes: int,
+     *       formattedBytes: string,
+     *       percentage: float,
+     *       colorClass: string
+     *     }>,
+     *     maximumBytes: int|null,
+     *     referenceBytes: int,
+     *     totalPercentage: float,
+     *     availableBytes: int|null,
+     *     availablePercentage: float|null,
+     *     availableLabel: string|null,
+     *     showAvailableSegment: bool,
+     *     isMaximumConfigured: bool
+     *   },
+     *   storages: array{
+     *     items: list<array{name: string, bytes: int|null, label: string}>,
+     *     total: array{bytes: int|null, label: string, available: bool}
+     *   },
+     *   mediaBreakdown: array{
+     *     storages: list<array{
+     *       name: string,
+     *       total: array{bytes: int, label: string},
+     *       categories: list<array{
+     *         identifier: string,
+     *         iconIdentifier: string,
+     *         label: string,
+     *         bytes: int,
+     *         formattedBytes: string,
+     *         fileCount: int
+     *       }>
+     *     }>
+     *   },
+     *   mediaBreakdownTotal: array{bytes: int, label: string},
+     *   database: array{
+     *     connections: list<array{
+     *       name: string,
+     *       bytes: int|null,
+     *       label: string,
+     *       available: bool,
+     *       tables: list<array{
+     *         name: string,
+     *         title: string|null,
+     *         iconIdentifier: string,
+     *         usesFallbackIcon: bool,
+     *         rowCount: int|null,
+     *         bytes: int|null,
+     *         formattedBytes: string,
+     *         available: bool
+     *       }>
+     *     }>,
+     *     total: array{bytes: int|null, label: string, available: bool}
+     *   },
+     *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
+     * }|null
+     */
+    private ?array $overviewCache = null;
+
+    /**
+     * @var array<string, array{bytes: int, fileCount: int}>
+     */
+    private array $filesystemMetricsCache = [];
+
+    /**
+     * @var array<int, array{bytes: int|null, fileCount: int|null, label: string, paths: list<string>}>
+     */
+    private array $storageMeasurementCache = [];
+
     public function __construct(
         private readonly StorageRepository $storageRepository,
         private readonly ConnectionPool $connectionPool,
         private readonly LanguageServiceFactory $languageServiceFactory,
         private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly ProcessedFileRepository $processedFileRepository,
     ) {}
 
     /**
@@ -104,6 +177,10 @@ final class SizeOverviewProvider
      */
     public function getOverview(): array
     {
+        if ($this->overviewCache !== null) {
+            return $this->overviewCache;
+        }
+
         $code = $this->getCodeOverview();
         $misc = $this->getMiscOverview();
         $storages = $this->getStorageOverview();
@@ -119,7 +196,7 @@ final class SizeOverviewProvider
         $total = $this->createTotalValue($totalBytes);
         $chart = $this->createChartData($storages, $database, $code, $misc, $totalBytes);
 
-        return [
+        $this->overviewCache = [
             'code' => $code,
             'misc' => $misc,
             'chart' => $chart,
@@ -129,6 +206,8 @@ final class SizeOverviewProvider
             'database' => $database,
             'total' => $total,
         ];
+
+        return $this->overviewCache;
     }
 
     /**
@@ -223,14 +302,18 @@ final class SizeOverviewProvider
      */
     private function getStorageMeasurement(ResourceStorage $storage): array
     {
+        if (isset($this->storageMeasurementCache[$storage->getUid()])) {
+            return $this->storageMeasurementCache[$storage->getUid()];
+        }
+
         try {
             if (!$storage->isOnline()) {
-                return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
             }
 
             $paths = $this->getStorageMeasuredPaths($storage);
             if ($paths === []) {
-                return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
             }
 
             $size = 0;
@@ -241,9 +324,9 @@ final class SizeOverviewProvider
                 $fileCount += $metrics['fileCount'];
             }
 
-            return [...$this->createByteValue($size), 'fileCount' => $fileCount, 'paths' => $paths];
+            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createByteValue($size), 'fileCount' => $fileCount, 'paths' => $paths];
         } catch (\Throwable) {
-            return [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
         }
     }
 
@@ -285,7 +368,7 @@ final class SizeOverviewProvider
 
     private function getFilesystemStorageSize(string $basePath): int
     {
-        return $this->getFilesystemStorageMetrics($basePath)['bytes'];
+        return $this->getPathSize($basePath);
     }
 
     /**
@@ -293,17 +376,32 @@ final class SizeOverviewProvider
      */
     private function getFilesystemStorageMetrics(string $basePath): array
     {
-        $finder = new Finder();
-        $finder->files()->in($basePath)->ignoreUnreadableDirs();
-
-        $size = 0;
-        $fileCount = 0;
-        foreach ($finder as $file) {
-            $size += $file->getSize();
-            $fileCount++;
+        $normalizedBasePath = $this->normalizePath($basePath) ?? rtrim($basePath, '/');
+        if (isset($this->filesystemMetricsCache[$normalizedBasePath])) {
+            return $this->filesystemMetricsCache[$normalizedBasePath];
         }
 
-        return [
+        $size = $this->getPathSize($basePath);
+        $fileCount = 0;
+        if (!is_dir($basePath) || !is_readable($basePath)) {
+            return $this->filesystemMetricsCache[$normalizedBasePath] = [
+                'bytes' => $size,
+                'fileCount' => 0,
+            ];
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isFile() && !$item->isLink()) {
+                $fileCount++;
+            }
+        }
+
+        return $this->filesystemMetricsCache[$normalizedBasePath] = [
             'bytes' => $size,
             'fileCount' => $fileCount,
         ];
@@ -367,31 +465,37 @@ final class SizeOverviewProvider
         try {
             $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file');
             $rows = $queryBuilder
-                ->select('storage', 'identifier', 'type', 'mime_type', 'extension', 'size')
-                ->from('sys_file')
+                ->select(
+                    'deduplicated.storage',
+                    'deduplicated.type',
+                    'deduplicated.mime_type',
+                    'deduplicated.extension',
+                )
+                ->addSelectLiteral('SUM(deduplicated.size) AS total_size')
+                ->addSelectLiteral('COUNT(*) AS file_count')
+                ->from('sys_file', 'deduplicated')
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'deduplicated.uid',
+                        $this->buildLatestNonMissingSysFileUidSubquery(),
+                    ),
+                )
+                ->groupBy('deduplicated.storage', 'deduplicated.type', 'deduplicated.mime_type', 'deduplicated.extension')
                 ->executeQuery()
                 ->fetchAllAssociative();
 
-            $storageObjects = [];
             foreach ($rows as $row) {
                 $storageUid = (int)($row['storage'] ?? 0);
                 if (!isset($storageRows[$storageUid])) {
                     $storageRows[$storageUid] = $this->createEmptyMediaCategories();
-                }
-                if (!array_key_exists($storageUid, $storageObjects)) {
-                    $storageObjects[$storageUid] = $this->storageRepository->findByUid($storageUid);
                 }
                 $category = $this->resolveMediaCategory(
                     (int)($row['type'] ?? 0),
                     (string)($row['mime_type'] ?? ''),
                     (string)($row['extension'] ?? ''),
                 );
-                $storageRows[$storageUid][$category]['bytes'] += $this->resolveIndexedFileSize(
-                    $storageObjects[$storageUid],
-                    (string)($row['identifier'] ?? ''),
-                    (int)($row['size'] ?? 0),
-                );
-                $storageRows[$storageUid][$category]['fileCount']++;
+                $storageRows[$storageUid][$category]['bytes'] += max(0, (int)($row['total_size'] ?? 0));
+                $storageRows[$storageUid][$category]['fileCount'] += max(0, (int)($row['file_count'] ?? 0));
             }
         } catch (\Throwable) {
             return ['storages' => []];
@@ -447,6 +551,21 @@ final class SizeOverviewProvider
         }
 
         return ['storages' => $storages];
+    }
+
+    private function buildLatestNonMissingSysFileUidSubquery(): string
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file');
+
+        return sprintf(
+            '(%s)',
+            $queryBuilder
+                ->selectLiteral('MAX(uid)')
+                ->from('sys_file')
+                ->where('missing = 0')
+                ->groupBy('storage', 'identifier')
+                ->getSQL(),
+        );
     }
 
     /**
@@ -556,12 +675,12 @@ final class SizeOverviewProvider
     {
         $schemaManager = $connection->createSchemaManager();
         $tableNames = $schemaManager->listTableNames();
-        $tableSizes = $this->getDatabaseTableSizes($connection, $tableNames);
+        $tableMetadata = $this->getDatabaseTableMetadata($connection, $tableNames);
         $tables = [];
 
         foreach ($tableNames as $tableName) {
-            $rowCount = $this->getTableRowCount($connection, $tableName);
-            $bytes = $tableSizes[$tableName] ?? null;
+            $rowCount = $tableMetadata[$tableName]['rowCount'] ?? $this->getTableRowCount($connection, $tableName);
+            $bytes = $tableMetadata[$tableName]['bytes'] ?? null;
             $iconIdentifier = $this->getTableIconIdentifier($tableName);
             $tables[] = [
                 'name' => $tableName,
@@ -601,9 +720,9 @@ final class SizeOverviewProvider
 
     /**
      * @param list<string> $tableNames
-     * @return array<string, int>
+     * @return array<string, array{bytes?: int, rowCount?: int}>
      */
-    private function getDatabaseTableSizes(Typo3Connection $connection, array $tableNames): array
+    private function getDatabaseTableMetadata(Typo3Connection $connection, array $tableNames): array
     {
         $platform = $connection->getDatabasePlatform();
 
@@ -614,29 +733,34 @@ final class SizeOverviewProvider
             }
 
             $rows = $connection->fetchAllAssociative(
-                'SELECT table_name, COALESCE(data_length + index_length, 0) AS size_bytes FROM information_schema.TABLES WHERE table_schema = ?',
+                'SELECT table_name, COALESCE(data_length + index_length, 0) AS size_bytes, COALESCE(table_rows, 0) AS table_rows FROM information_schema.TABLES WHERE table_schema = ?',
                 [$databaseName],
             );
 
-            $sizes = [];
+            $metadata = [];
             foreach ($rows as $row) {
-                $sizes[(string)$row['table_name']] = (int)$row['size_bytes'];
+                $metadata[(string)$row['table_name']] = [
+                    'bytes' => (int)$row['size_bytes'],
+                    'rowCount' => (int)$row['table_rows'],
+                ];
             }
 
-            return $sizes;
+            return $metadata;
         }
 
         if ($platform instanceof PostgreSQLPlatform) {
-            $sizes = [];
+            $metadata = [];
             foreach ($tableNames as $tableName) {
-                $sizes[$tableName] = (int)$connection->fetchOne(
+                $metadata[$tableName] = [
+                    'bytes' => (int)$connection->fetchOne(
                     'SELECT pg_total_relation_size(?)',
                     [$tableName],
                     [Connection::PARAM_STR],
-                );
+                    ),
+                ];
             }
 
-            return $sizes;
+            return $metadata;
         }
 
         if ($platform instanceof SQLitePlatform) {
@@ -737,6 +861,11 @@ final class SizeOverviewProvider
 
     private function getPathSize(string $path): int
     {
+        $systemMeasuredSize = $this->getPathSizeUsingSystemCommand($path);
+        if ($systemMeasuredSize !== null) {
+            return $systemMeasuredSize;
+        }
+
         if (is_file($path)) {
             return (int)filesize($path);
         }
@@ -758,6 +887,51 @@ final class SizeOverviewProvider
         }
 
         return $size;
+    }
+
+    private function getPathSizeUsingSystemCommand(string $path): ?int
+    {
+        if (!is_file($path) && !is_dir($path)) {
+            return null;
+        }
+
+        $commands = [
+            ['du', '-sb', $path],
+            ['du', '-sk', $path],
+        ];
+
+        foreach ($commands as $command) {
+            try {
+                $process = new Process($command);
+                $process->setTimeout(10);
+                $process->run();
+
+                if (!$process->isSuccessful()) {
+                    continue;
+                }
+
+                $output = trim($process->getOutput());
+                if ($output === '') {
+                    continue;
+                }
+
+                $firstColumn = preg_split('/\s+/', $output)[0] ?? null;
+                if (!is_string($firstColumn) || !ctype_digit($firstColumn)) {
+                    continue;
+                }
+
+                $value = (int)$firstColumn;
+                if (($command[1] ?? null) === '-sk') {
+                    $value *= 1024;
+                }
+
+                return max(0, $value);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 
     private function normalizePath(string $path): ?string
@@ -1164,86 +1338,63 @@ final class SizeOverviewProvider
     {
         $measurements = [];
 
-        try {
-            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_processedfile');
-            $rows = $queryBuilder
-                ->select('uid', 'storage')
-                ->from('sys_file_processedfile')
-                ->executeQuery()
-                ->fetchAllAssociative();
-
-            foreach ($rows as $row) {
-                $storageUid = (int)($row['storage'] ?? 0);
-                if (!isset($measurements[$storageUid])) {
-                    $measurements[$storageUid] = ['bytes' => 0, 'fileCount' => 0];
-                }
-
-                $processedFile = $this->processedFileRepository->findByUid((int)$row['uid']);
-                $localPath = $this->resolveProcessedFilePath($processedFile);
-                if ($localPath === null) {
-                    continue;
-                }
-
-                $measurements[$storageUid]['bytes'] += (int)filesize($localPath);
-                $measurements[$storageUid]['fileCount']++;
+        foreach ($this->storageRepository->findAll() as $storage) {
+            $processingPaths = $this->getLocalProcessingFolderPaths($storage);
+            if ($processingPaths === []) {
+                continue;
             }
-        } catch (\Throwable) {
-            return [];
+
+            $storageUid = $storage->getUid();
+            $measurements[$storageUid] = ['bytes' => 0, 'fileCount' => 0];
+            foreach ($this->getNonOverlappingPaths($processingPaths) as $processingPath) {
+                $metrics = $this->getFilesystemStorageMetrics($processingPath);
+                $measurements[$storageUid]['bytes'] += $metrics['bytes'];
+                $measurements[$storageUid]['fileCount'] += $metrics['fileCount'];
+            }
         }
 
         return $measurements;
     }
 
-    private function resolveProcessedFilePath(ProcessedFile $processedFile): ?string
+    /**
+     * @return list<string>
+     */
+    private function getLocalProcessingFolderPaths(ResourceStorage $storage): array
     {
+        if ($storage->getDriverType() !== 'Local') {
+            return [];
+        }
+
         try {
-            if (!$processedFile->exists()) {
-                return null;
-            }
-
-            $publicUrl = null;
-            try {
-                $publicUrl = $processedFile->getPublicUrl();
-            } catch (\Throwable) {
-                $publicUrl = null;
-            }
-
-            if (is_string($publicUrl) && $publicUrl !== '') {
-                $candidate = Environment::getPublicPath() . '/' . ltrim($publicUrl, '/');
-                $resolvedPath = $this->normalizePath($candidate);
-                if ($resolvedPath !== null && is_file($resolvedPath) && is_readable($resolvedPath)) {
-                    return $resolvedPath;
+            $paths = [];
+            foreach ($storage->getProcessingFolders() as $processingFolder) {
+                $resolvedPath = $this->resolveLocalFolderPath($processingFolder);
+                if ($resolvedPath !== null) {
+                    $paths[] = $resolvedPath;
                 }
             }
 
-            $identifier = $processedFile->getIdentifier();
-            $storageBasePath = $this->resolveLocalStorageBasePath($processedFile->getStorage());
-            if ($storageBasePath === null || $identifier === '') {
-                return null;
-            }
-
-            $resolvedPath = $this->normalizePath($storageBasePath . '/' . ltrim($identifier, '/'));
-
-            return $resolvedPath !== null && is_file($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
+            return $paths;
         } catch (\Throwable) {
-            return null;
+            return [];
         }
     }
 
-    private function resolveIndexedFileSize(?ResourceStorage $storage, string $identifier, int $fallbackSize): int
+    private function resolveLocalFolderPath(Folder $folder): ?string
     {
-        if ($storage === null || $identifier === '') {
-            return max(0, $fallbackSize);
+        $identifier = $folder->getIdentifier();
+        if ($identifier === '') {
+            return null;
         }
 
-        try {
-            $fileInfo = $storage->getFileInfoByIdentifier($identifier, ['size']);
-            $size = (int)($fileInfo['size'] ?? $fallbackSize);
-
-            return max(0, $size);
-        } catch (\Throwable) {
-            return max(0, $fallbackSize);
+        $storageBasePath = $this->resolveLocalStorageBasePath($folder->getStorage());
+        if ($storageBasePath === null) {
+            return null;
         }
+
+        $resolvedPath = $this->normalizePath($storageBasePath . '/' . ltrim($identifier, '/'));
+
+        return $resolvedPath !== null && is_dir($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
     }
 
     /**
