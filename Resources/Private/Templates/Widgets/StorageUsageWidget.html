@@ -1,0 +1,47 @@
+<html data-namespace-typo3-fluid="true" xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers">
+<div class="size-dashboard-widget">
+    <a class="size-dashboard-widget-link" href="{storageStatisticsModuleUrl}">
+        <div class="size-dashboard-widget-header">
+            <span class="size-dashboard-widget-kicker"><f:translate key="module.storageStatistics.kicker" extensionName="size" /></span>
+            <strong class="size-dashboard-widget-total {total.highlightClass}">{total.displayLabel}</strong>
+        </div>
+
+        <div class="size-dashboard-widget-bar" role="img" aria-label="{f:translate(key: 'module.storageStatistics.barAriaLabel', extensionName: 'size')}">
+            <f:for each="{chart.categories}" as="category">
+                <f:if condition="{category.bytes} > 0">
+                    <span
+                        class="size-dashboard-widget-segment {category.colorClass}"
+                        title="{category.label}: {category.formattedBytes}"
+                        style="width: {category.percentage}%"
+                    ></span>
+                </f:if>
+            </f:for>
+            <f:if condition="{chart.showAvailableSegment}">
+                <span
+                    class="size-dashboard-widget-segment size-storage-color-available"
+                    title="{f:translate(key: 'module.storageStatistics.available', extensionName: 'size')}: {chart.availableLabel}"
+                    style="width: {chart.availablePercentage}%"
+                ></span>
+            </f:if>
+        </div>
+
+        <div class="size-dashboard-widget-legend">
+            <f:for each="{chart.categories}" as="category">
+                <f:if condition="{category.bytes} > 0">
+                    <span class="size-dashboard-widget-legend-item">
+                        <span class="size-dashboard-widget-legend-swatch {category.colorClass}"></span>
+                        <span>{category.label}: {category.formattedBytes}</span>
+                    </span>
+                </f:if>
+            </f:for>
+            <f:if condition="{chart.showAvailableSegment}">
+                <span class="size-dashboard-widget-legend-item">
+                    <span class="size-dashboard-widget-legend-swatch size-storage-color-available"></span>
+                    <span><f:translate key="module.storageStatistics.available" extensionName="size" />: {chart.availableLabel}</span>
+                </span>
+            </f:if>
+        </div>
+
+    </a>
+</div>
+</html>

@@ -6,3 +6,4 @@ services:
 
     T3\Size\:
         resource: '../Classes/*'
+        exclude: '../Classes/Widgets/*'

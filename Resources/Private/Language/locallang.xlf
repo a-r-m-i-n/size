@@ -117,6 +117,15 @@
             <trans-unit id="toolbar.openStorageStatistics">
                 <source>Extended storage usage statistics</source>
             </trans-unit>
+            <trans-unit id="widget.storageUsage.title">
+                <source>Storage usage</source>
+            </trans-unit>
+            <trans-unit id="widget.storageUsage.description">
+                <source>Shows the storage usage bar and opens the extended storage statistics module.</source>
+            </trans-unit>
+            <trans-unit id="widget.storageUsage.link">
+                <source>Open extended storage statistics</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>
