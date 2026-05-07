@@ -218,6 +218,10 @@
     vertical-align: middle;
 }
 
+.size-storage-table thead th {
+    background-color: transparent;
+}
+
 .size-storage-table th:last-child,
 .size-storage-table td:last-child,
 .size-storage-table th:nth-last-child(2),
