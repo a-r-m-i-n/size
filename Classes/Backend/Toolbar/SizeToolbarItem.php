@@ -6,18 +6,19 @@ namespace T3\Size\Backend\Toolbar;
 
 use Psr\Http\Message\ServerRequestInterface;
 use T3\Size\Service\SizeOverviewProvider;
+use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\RequestAwareToolbarItemInterface;
 use TYPO3\CMS\Backend\Toolbar\ToolbarItemInterface;
 use TYPO3\CMS\Backend\View\BackendViewFactory;
-use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbarItemInterface
 {
     private ServerRequestInterface $request;
 
     public function __construct(
-        private readonly IconFactory $iconFactory,
+        private readonly ModuleProvider $moduleProvider,
         private readonly BackendViewFactory $backendViewFactory,
         private readonly SizeOverviewProvider $sizeOverviewProvider,
         private readonly UriBuilder $uriBuilder,
@@ -30,9 +31,7 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
 
     public function checkAccess(): bool
     {
-        // Hier steuerst du, wer den Button sehen darf.
-        // Beispiel: alle eingeloggten Backend-User.
-        return isset($GLOBALS['BE_USER']) && $GLOBALS['BE_USER']->user;
+        return $this->moduleProvider->accessGranted('size_storage_statistics', $this->getBackendUser());
     }
 
     public function getItem(): string
@@ -86,5 +85,10 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     public function getIndex(): int
     {
         return 50;
+    }
+
+    private function getBackendUser(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

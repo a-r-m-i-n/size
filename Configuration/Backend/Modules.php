@@ -8,7 +8,7 @@ return [
         'access' => 'user',
         'path' => '/module/system/size/storage-statistics',
         'packageName' => 't3/size',
-        'iconIdentifier' => 'actions-download',
+        'iconIdentifier' => 'tx-size-chart-pie',
         'labels' => 'LLL:EXT:size/Resources/Private/Language/locallang_mod.xlf',
         'appearance' => [
             'renderInModuleMenu' => false,
