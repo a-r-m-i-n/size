@@ -6,6 +6,9 @@
             <trans-unit id="title">
                 <source>Storage usage information</source>
             </trans-unit>
+            <trans-unit id="toolbar.description">
+                <source>Shows the current total storage usage of this TYPO3 installation.</source>
+            </trans-unit>
             <trans-unit id="section.code">
                 <source>Code</source>
             </trans-unit>

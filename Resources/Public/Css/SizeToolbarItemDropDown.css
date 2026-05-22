@@ -5,6 +5,73 @@
     --size-storage-misc: #b4554f;
 }
 
+.size-storage-dropdown-description {
+    margin: 0 0 0.5rem;
+    padding: 0 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.size-storage-toggle {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.size-storage-toggle:hover,
+.size-storage-toggle:focus-visible {
+    color: inherit;
+}
+
+.size-storage-toggle-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.size-storage-toggle-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.size-storage-toggle.is-expanded .size-storage-toggle-indicator {
+    transform: rotate(90deg);
+}
+
+.size-storage-details {
+    padding-bottom: 0.25rem;
+    overflow: hidden;
+    opacity: 0;
+    transition: height 0.24s ease, opacity 0.2s ease;
+}
+
+.size-storage-details .dropdown-item-text {
+    padding: 0.375rem 0.75rem 0.375rem 2.125rem;
+}
+
+.size-storage-details[hidden] {
+    display: none;
+}
+
+.size-storage-details.is-expanded {
+    opacity: 1;
+}
+
+.size-storage-details .dropdown-item-text + .dropdown-item-text {
+    margin-top: 0.25rem;
+}
+
 .size-storage-section-heading {
     display: flex;
     align-items: center;
