@@ -86,3 +86,5 @@ If there are multiple ways to implement a TYPO3 task, choose the approach that m
 - Before using a TYPO3 API, prefer the current core-recommended approach that is available in TYPO3 `13.4` and `14.3`.
 - Keep changes minimal, consistent with the existing extension structure, and easy to review.
 - Do not introduce unit tests by default.
+- Do not run git commands in parallel; execute them sequentially to avoid `index.lock` conflicts.
+- Write commit messages as `[TYPE] Summary` and create AI-authored commits as `Codex CLI <armin@v.ieweg.de>`.

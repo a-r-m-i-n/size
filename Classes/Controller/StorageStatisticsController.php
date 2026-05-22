@@ -11,6 +11,7 @@ use T3\Size\Service\SizeOverviewRefreshService;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -51,9 +52,9 @@ final readonly class StorageStatisticsController
 
     public function refreshAction(ServerRequestInterface $request): ResponseInterface
     {
-        if (!$this->sizeOverviewProvider->isManualRefreshEnabled()) {
+        if (!$this->sizeOverviewProvider->isAdminUser()) {
             $this->enqueueFlashMessage(
-                $this->translate('module.storageStatistics.refreshDisabled'),
+                $this->translate('module.storageStatistics.refreshRequiresAdmin'),
                 ContextualFeedbackSeverity::WARNING
             );
 
@@ -108,7 +109,14 @@ final readonly class StorageStatisticsController
     private function translate(string $key): string
     {
         return $this->languageServiceFactory
-            ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
+            ->createFromUserPreferences($this->getBackendUser())
             ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
+    }
+
+    private function getBackendUser(): ?BackendUserAuthentication
+    {
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+
+        return $backendUser instanceof BackendUserAuthentication ? $backendUser : null;
     }
 }

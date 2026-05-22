@@ -96,12 +96,6 @@
             <trans-unit id="settings.maximumTotalStorage.description">
                 <source>Optional maximum value for the total storage display, for example 250 MB, 1 GB or 1.5 GB.</source>
             </trans-unit>
-            <trans-unit id="settings.enableManualRefreshButton">
-                <source>Enable manual refresh button</source>
-            </trans-unit>
-            <trans-unit id="settings.enableManualRefreshButton.description">
-                <source>Shows the manual refresh button in the backend module. The CLI command remains available.</source>
-            </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Extended storage statistics</source>
             </trans-unit>
@@ -150,8 +144,8 @@
             <trans-unit id="module.storageStatistics.sortColumn">
                 <source>Sort column</source>
             </trans-unit>
-            <trans-unit id="module.storageStatistics.refreshDisabled">
-                <source>Manual refresh is disabled in the extension settings.</source>
+            <trans-unit id="module.storageStatistics.refreshRequiresAdmin">
+                <source>Only backend administrators can trigger a manual refresh.</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.refreshLocked">
                 <source>A refresh is already running. No second calculation was started.</source>

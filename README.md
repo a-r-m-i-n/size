@@ -39,9 +39,9 @@ The backend module shows:
 
 - a colored storage distribution bar for the main categories `Media`, `Database`, `Code`, and `Misc`
 - the age of the last successful calculation
-- the runtime of the last successful calculation
+- for backend administrators, the runtime of the last successful calculation
 - an indicator if a recalculation is currently running
-- a `Recalculate` action next to the update metadata, if enabled by extension settings
+- for backend administrators, a `Recalculate` action next to the update metadata
 
 The `Misc` category includes files in the project root as well as the `config`, `var`, and `public/typo3temp` directories.
 
@@ -77,18 +77,4 @@ If set, the total section is rendered like `Total: 165.32 MB / 250 MB (66.1%)`.
 
 If `maximumTotalStorage` is not set, the module visualization always renders the bar fully filled and scales the category segments relative to the currently measured total.
 
-### `enableManualRefreshButton`
-
-The boolean extension setting `enableManualRefreshButton` controls whether the manual `Recalculate` action is shown in the backend module.
-
-Default:
-
-```text
-1
-```
-
-Behavior:
-
-- if enabled, editors can trigger a synchronous recalculation in the backend module
-- if disabled, the button is hidden and direct access to the module refresh route is rejected
-- the CLI command `size:refresh` remains available regardless of this setting
+The manual backend-module refresh is restricted to backend administrators. Non-admin users still see the last update timestamp and refresh status, but they do not see the runtime or the `Recalculate` action. The CLI command `size:refresh` remains available regardless of backend permissions.

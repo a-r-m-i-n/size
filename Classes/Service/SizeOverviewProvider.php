@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace T3\Size\Service;
 
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 
 final class SizeOverviewProvider
@@ -15,7 +15,6 @@ final class SizeOverviewProvider
     public function __construct(
         private readonly SizeOverviewSnapshotStorage $snapshotStorage,
         private readonly SizeOverviewRefreshService $refreshService,
-        private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly LanguageServiceFactory $languageServiceFactory,
     ) {}
 
@@ -57,15 +56,15 @@ final class SizeOverviewProvider
             'lastRuntimeLabel' => $this->formatRuntimeLabel($durationMs),
             'hasSnapshot' => $snapshot !== null,
             'isRefreshRunning' => $this->refreshService->isRefreshRunning(),
-            'manualRefreshEnabled' => $this->isManualRefreshEnabled(),
+            'isAdminUser' => $this->isAdminUser(),
         ];
 
         return $this->contextCache;
     }
 
-    public function isManualRefreshEnabled(): bool
+    public function isAdminUser(): bool
     {
-        return (bool)($this->extensionConfiguration->get('size', 'enableManualRefreshButton') ?? true);
+        return $this->getBackendUser()?->isAdmin() ?? false;
     }
 
     /**
@@ -193,7 +192,14 @@ final class SizeOverviewProvider
     private function translate(string $key): string
     {
         return $this->languageServiceFactory
-            ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
+            ->createFromUserPreferences($this->getBackendUser())
             ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
+    }
+
+    private function getBackendUser(): ?BackendUserAuthentication
+    {
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+
+        return $backendUser instanceof BackendUserAuthentication ? $backendUser : null;
     }
 }
