@@ -32,8 +32,17 @@ final class SizeOverviewCalculator
 
     /**
      * @var array{
-     *   code: array<string, array{bytes: int|null, label: string}>,
-     *   misc: array{bytes: int, label: string},
+     *   code: array{
+     *     vendor: array{bytes: int, label: string},
+     *     extensions: array{bytes: int, label: string},
+     *     dependencies: array{bytes: int, label: string},
+     *     rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *     total: array{bytes: int, label: string}
+     *   },
+     *   misc: array{
+     *     rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *     total: array{bytes: int, label: string}
+     *   },
      *   chart: array{
      *     categories: list<array{
      *       identifier: string,
@@ -54,7 +63,7 @@ final class SizeOverviewCalculator
      *   },
      *   storages: array{
      *     items: list<array{name: string, bytes: int|null, label: string}>,
-     *     total: array{bytes: int|null, label: string, available: bool}
+     *     total: array{bytes: int|null, label: string, summaryLabel: string, available: bool}
      *   },
      *   mediaBreakdown: array{
      *     storages: list<array{
@@ -93,7 +102,7 @@ final class SizeOverviewCalculator
      *         available: bool
      *       }>
      *     }>,
-     *     total: array{bytes: int|null, label: string, available: bool}
+     *     total: array{bytes: int|null, label: string, summaryLabel: string, available: bool}
      *   },
      *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
      * }|null
@@ -119,8 +128,17 @@ final class SizeOverviewCalculator
 
     /**
      * @return array{
-     *   code: array<string, array{bytes: int|null, label: string}>,
-     *   misc: array{bytes: int, label: string},
+     *   code: array{
+     *     vendor: array{bytes: int, label: string},
+     *     extensions: array{bytes: int, label: string},
+     *     dependencies: array{bytes: int, label: string},
+     *     rows: list<array{identifier: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *     total: array{bytes: int, label: string, summaryLabel: string}
+     *   },
+     *   misc: array{
+     *     rows: list<array{identifier: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *     total: array{bytes: int, label: string, summaryLabel: string}
+     *   },
      *   chart: array{
      *     categories: list<array{
      *       identifier: string,
@@ -194,12 +212,16 @@ final class SizeOverviewCalculator
         $database = $this->getDatabaseOverview();
         $totalBytes = (
             ($code['total']['bytes'] ?? 0)
-            + ($misc['bytes'] ?? 0)
+            + ($misc['total']['bytes'] ?? 0)
             + ($storages['total']['bytes'] ?? 0)
             + ($database['total']['bytes'] ?? 0)
         );
         $total = $this->createTotalValue($totalBytes);
         $chart = $this->createChartData($storages, $database, $code, $misc, $totalBytes);
+        $storages['total']['summaryLabel'] = $this->createSummaryLabel($storages['total']['label'], $storages['total']['bytes'], $totalBytes);
+        $database['total']['summaryLabel'] = $this->createSummaryLabel($database['total']['label'], $database['total']['bytes'], $totalBytes);
+        $code['total']['summaryLabel'] = $this->createSummaryLabel($code['total']['label'], $code['total']['bytes'], $totalBytes);
+        $misc['total']['summaryLabel'] = $this->createSummaryLabel($misc['total']['label'], $misc['total']['bytes'], $totalBytes);
 
         $this->overviewCache = [
             'code' => $code,
@@ -216,7 +238,13 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array<string, array{bytes: int|null, label: string}>
+     * @return array{
+     *   vendor: array{bytes: int, label: string},
+     *   extensions: array{bytes: int, label: string},
+     *   dependencies: array{bytes: int, label: string},
+     *   rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *   total: array{bytes: int, label: string}
+     * }
      */
     private function getCodeOverview(): array
     {
@@ -236,11 +264,17 @@ final class SizeOverviewCalculator
         }
 
         $total = $groups['vendor'] + $groups['extensions'] + $groups['dependencies'];
+        $rows = [
+            $this->createBreakdownRow('vendor', 'code.vendor', $groups['vendor'], $total),
+            $this->createBreakdownRow('extensions', 'code.extensions', $groups['extensions'], $total),
+            $this->createBreakdownRow('dependencies', 'code.dependencies', $groups['dependencies'], $total),
+        ];
 
         return [
             'vendor' => $this->createByteValue($groups['vendor']),
             'extensions' => $this->createByteValue($groups['extensions']),
             'dependencies' => $this->createByteValue($groups['dependencies']),
+            'rows' => $rows,
             'total' => $this->createByteValue($total),
         ];
     }
@@ -276,25 +310,55 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{bytes: int, label: string}
+     * @return array{
+     *   rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *   total: array{bytes: int, label: string}
+     * }
      */
     private function getMiscOverview(): array
     {
         $projectPath = Environment::getProjectPath();
         $publicPath = Environment::getPublicPath();
-        $size = 0;
+        $projectRootFilesBytes = 0;
 
         foreach (new \FilesystemIterator($projectPath, \FilesystemIterator::SKIP_DOTS) as $item) {
             if ($item->isFile() && !$item->isLink()) {
-                $size += $item->getSize();
+                $projectRootFilesBytes += $item->getSize();
             }
         }
 
-        $size += $this->getPathSize($projectPath . '/var');
-        $size += $this->getPathSize($projectPath . '/config');
-        $size += $this->getPathSize($publicPath . '/typo3temp');
+        $rows = [
+            [
+                'identifier' => 'projectRootFiles',
+                'labelKey' => 'misc.projectRootFiles',
+                'bytes' => $projectRootFilesBytes,
+            ],
+            [
+                'identifier' => 'config',
+                'labelKey' => 'misc.config',
+                'bytes' => $this->getPathSize($projectPath . '/config'),
+            ],
+            [
+                'identifier' => 'var',
+                'labelKey' => 'misc.var',
+                'bytes' => $this->getPathSize($projectPath . '/var'),
+            ],
+            [
+                'identifier' => 'publicTypo3temp',
+                'labelKey' => 'misc.publicTypo3temp',
+                'bytes' => $this->getPathSize($publicPath . '/typo3temp'),
+            ],
+        ];
+        $totalBytes = array_sum(array_map(static fn(array $row): int => $row['bytes'], $rows));
+        $rows = array_map(
+            fn(array $row): array => $this->createBreakdownRow($row['identifier'], $row['labelKey'], $row['bytes'], $totalBytes),
+            $rows,
+        );
 
-        return $this->createByteValue($size);
+        return [
+            'rows' => $rows,
+            'total' => $this->createByteValue($totalBytes),
+        ];
     }
 
     /**
@@ -1003,6 +1067,25 @@ final class SizeOverviewCalculator
     }
 
     /**
+     * @return array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}
+     */
+    private function createBreakdownRow(string $identifier, string $labelKey, int $bytes, int $totalBytes): array
+    {
+        return [
+            'identifier' => $identifier,
+            'labelKey' => $labelKey,
+            'label' => $this->translate($labelKey),
+            'bytes' => $bytes,
+            'sizeLabel' => sprintf(
+                '%s (%s)',
+                $this->formatBytes($bytes),
+                $this->formatPercentage($bytes, $totalBytes),
+            ),
+            'percentage' => $totalBytes > 0 ? ($bytes / $totalBytes * 100) : 0.0,
+        ];
+    }
+
+    /**
      * @return array{bytes: null, label: string}
      */
     private function createUnavailableValue(): array
@@ -1107,7 +1190,7 @@ final class SizeOverviewCalculator
             $this->createChartCategory(
                 'misc',
                 $this->translate('section.misc'),
-                $misc['bytes'],
+                (int)($misc['total']['bytes'] ?? 0),
                 'size-storage-color-misc',
                 $visualReferenceBytes,
             ),
@@ -1245,6 +1328,19 @@ final class SizeOverviewCalculator
         $percentage = $totalBytes > 0 ? ($bytes / $totalBytes * 100) : 0.0;
 
         return number_format($percentage, 1, '.', '') . '%';
+    }
+
+    private function createSummaryLabel(string $label, ?int $bytes, int $totalBytes): string
+    {
+        if ($bytes === null || $totalBytes <= 0) {
+            return $label;
+        }
+
+        return sprintf(
+            '%s (%s)',
+            $label,
+            $this->formatPercentage($bytes, $totalBytes),
+        );
     }
 
     private function translate(string $key): string

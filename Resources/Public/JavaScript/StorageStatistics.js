@@ -13,6 +13,7 @@
         let activeSort = createDefaultSort(headers);
 
         if (activeSort !== null) {
+            sortTableRows(tbody, activeSort.key, activeSort.direction, inferSortType(headers, activeSort.key));
             updateHeaderState(headers, activeSort);
         }
 
@@ -29,20 +30,23 @@
                     direction = activeSort.direction === 'asc' ? 'desc' : 'asc';
                 }
 
-                const rows = Array.from(tbody.rows).map((row, index) => ({
-                    row,
-                    index,
-                    value: readSortValue(row, key, type),
-                }));
-
-                rows.sort((left, right) => compareRows(left, right, direction, type));
-                rows.forEach(({row}) => tbody.appendChild(row));
-
+                sortTableRows(tbody, key, direction, type);
                 activeSort = {key, direction};
                 updateHeaderState(headers, activeSort);
             });
         });
     });
+
+    function sortTableRows(tbody, key, direction, type) {
+        const rows = Array.from(tbody.rows).map((row, index) => ({
+            row,
+            index,
+            value: readSortValue(row, key, type),
+        }));
+
+        rows.sort((left, right) => compareRows(left, right, direction, type));
+        rows.forEach(({row}) => tbody.appendChild(row));
+    }
 
     function readSortValue(row, key, type) {
         const attributeName = key.replace(/[A-Z]/g, (match) => '-' + match.toLowerCase());
@@ -107,5 +111,10 @@
             key: defaultButton.dataset.sortKey,
             direction: 'desc',
         };
+    }
+
+    function inferSortType(headers, key) {
+        const matchingButton = Array.from(headers).find((button) => button.dataset.sortKey === key);
+        return matchingButton?.dataset.sortType === 'number' ? 'number' : 'text';
     }
 }());

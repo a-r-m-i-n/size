@@ -39,6 +39,12 @@
             <trans-unit id="section.databaseTables">
                 <source>Database: Sizes by connections and tables</source>
             </trans-unit>
+            <trans-unit id="section.codeBreakdown">
+                <source>Code: Sizes by groups</source>
+            </trans-unit>
+            <trans-unit id="section.miscBreakdown">
+                <source>Misc: Sizes by directories</source>
+            </trans-unit>
             <trans-unit id="section.mediaBreakdown">
                 <source>Media: File type breakdown by file storages</source>
             </trans-unit>
@@ -81,6 +87,9 @@
             <trans-unit id="table.table">
                 <source>Table</source>
             </trans-unit>
+            <trans-unit id="table.label">
+                <source>Label</source>
+            </trans-unit>
             <trans-unit id="database.tableSizeNotAvailable">
                 <source>not available</source>
             </trans-unit>
@@ -113,6 +122,18 @@
             </trans-unit>
             <trans-unit id="module.storageStatistics.miscDescription">
                 <source>Includes project root files plus the config, var, and public/typo3temp directories.</source>
+            </trans-unit>
+            <trans-unit id="misc.projectRootFiles">
+                <source>Project root files</source>
+            </trans-unit>
+            <trans-unit id="misc.config">
+                <source>config</source>
+            </trans-unit>
+            <trans-unit id="misc.var">
+                <source>var</source>
+            </trans-unit>
+            <trans-unit id="misc.publicTypo3temp">
+                <source>public/typo3temp</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.lastUpdated">
                 <source>Last updated</source>
