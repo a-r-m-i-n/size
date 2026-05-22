@@ -45,6 +45,10 @@
     box-shadow: var(--size-storage-shadow);
 }
 
+.size-storage-hidden-form {
+    display: none;
+}
+
 .size-storage-card-header {
     display: flex;
     justify-content: space-between;
@@ -184,6 +188,31 @@
 
 .size-storage-full-width-card {
     width: 100%;
+}
+
+.size-storage-reset-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-color: color-mix(in srgb, var(--size-storage-misc), var(--size-storage-border) 45%);
+}
+
+.size-storage-reset-copy {
+    max-width: 52rem;
+}
+
+.size-storage-reset-heading {
+    margin-bottom: 0.5rem;
+}
+
+.size-storage-reset-description {
+    margin: 0;
+    color: var(--size-storage-text-muted);
+}
+
+.size-storage-reset-button {
+    flex: 0 0 auto;
 }
 
 .size-storage-grid > .size-storage-detail-card {
@@ -561,5 +590,10 @@
 
     .size-storage-total {
         text-align: left;
+    }
+
+    .size-storage-reset-card {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

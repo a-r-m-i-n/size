@@ -70,6 +70,13 @@ final readonly class StorageUsageNotificationRegistry
         );
     }
 
+    public function reset(): void
+    {
+        $this->registry->remove(self::REGISTRY_NAMESPACE, self::LAST_CHECK_KEY);
+        $this->registry->remove(self::REGISTRY_NAMESPACE, self::LAST_SENT_WARNING_KEY);
+        $this->registry->remove(self::REGISTRY_NAMESPACE, self::LAST_SENT_FULL_KEY);
+    }
+
     /**
      * @param mixed $value
      * @return list<string>

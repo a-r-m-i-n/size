@@ -49,4 +49,9 @@ final readonly class SizeOverviewSnapshotStorage
             'durationMs' => $durationMs,
         ]);
     }
+
+    public function removeSnapshot(): void
+    {
+        $this->registry->remove(self::REGISTRY_NAMESPACE, self::REGISTRY_KEY);
+    }
 }

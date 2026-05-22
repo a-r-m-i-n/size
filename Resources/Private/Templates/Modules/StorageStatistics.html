@@ -7,11 +7,19 @@
     identifier="size-storage-statistics-sorting"
     src="EXT:size/Resources/Public/JavaScript/StorageStatistics.js"
 />
+<f:asset.script
+    identifier="size-storage-statistics-reset"
+    src="EXT:size/Resources/Public/JavaScript/StorageStatisticsReset.js"
+    type="module"
+/>
 
 <div class="module-body size-storage-module">
     <f:if condition="{isAdminUser}">
         <form id="{refreshFormId}" action="{refreshActionUrl}" method="post">
             <input type="hidden" name="formToken" value="{refreshFormToken}" />
+        </form>
+        <form id="{resetFormId}" action="{resetActionUrl}" method="post" class="size-storage-hidden-form">
+            <input type="hidden" name="formToken" value="{resetFormToken}" />
         </form>
     </f:if>
 
@@ -548,5 +556,31 @@
             </table>
         </div>
     </section>
+
+    <f:if condition="{isAdminUser}">
+        <section class="size-storage-detail-card size-storage-full-width-card size-storage-reset-card">
+            <div class="size-storage-reset-copy">
+                <p class="size-storage-kicker"><f:translate key="module.storageStatistics.resetKicker" extensionName="size" /></p>
+                <h2 class="size-storage-detail-heading size-storage-reset-heading">
+                    <span><f:translate key="module.storageStatistics.resetTitle" extensionName="size" /></span>
+                </h2>
+                <p class="size-storage-reset-description">
+                    <f:translate key="module.storageStatistics.resetDescription" extensionName="size" />
+                </p>
+            </div>
+            <button
+                type="button"
+                class="btn btn-warning size-storage-reset-button"
+                data-size-reset-trigger
+                data-size-reset-form-id="{resetFormId}"
+                data-size-reset-modal-title="{resetModalTitle}"
+                data-size-reset-modal-message="{resetModalMessage}"
+                data-size-reset-modal-confirm="{resetModalConfirmLabel}"
+                data-size-reset-modal-cancel="{resetModalCancelLabel}"
+            >
+                <f:translate key="module.storageStatistics.resetButton" extensionName="size" />
+            </button>
+        </section>
+    </f:if>
 </div>
 </html>

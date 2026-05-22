@@ -204,6 +204,36 @@
             <trans-unit id="module.storageStatistics.refreshSuccess">
                 <source>Storage statistics snapshot refreshed in %d ms.</source>
             </trans-unit>
+            <trans-unit id="module.storageStatistics.resetKicker">
+                <source>Administrative reset</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetTitle">
+                <source>Reset stored statistics</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetDescription">
+                <source>Deletes the saved overview snapshot and notification registry state. The module returns to the initial placeholder state until the next recalculation.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetButton">
+                <source>Reset statistics data</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetModalTitle">
+                <source>Reset stored statistics?</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetModalMessage">
+                <source>This removes all EXT:size entries from the registry for the overview snapshot and notification status. Continue only if you want to clear the current stored state.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetModalConfirmLabel">
+                <source>Reset</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetModalCancelLabel">
+                <source>Cancel</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetRequiresAdmin">
+                <source>Only backend administrators can reset the stored statistics data.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.resetSuccess">
+                <source>Stored storage statistics data has been reset.</source>
+            </trans-unit>
             <trans-unit id="mail.storageUsage.subject.warning">
                 <source>Storage usage warning: %s%% of the configured limit reached</source>
             </trans-unit>

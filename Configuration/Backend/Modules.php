@@ -21,6 +21,10 @@ return [
                 'target' => StorageStatisticsController::class . '::refreshAction',
                 'methods' => ['POST'],
             ],
+            'reset' => [
+                'target' => StorageStatisticsController::class . '::resetAction',
+                'methods' => ['POST'],
+            ],
         ],
     ],
 ];

@@ -6,8 +6,10 @@ namespace T3\Size\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use T3\Size\Service\SizeOverviewSnapshotStorage;
 use T3\Size\Service\SizeOverviewProvider;
 use T3\Size\Service\SizeOverviewRefreshService;
+use T3\Size\Service\StorageUsageNotificationRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -27,6 +29,8 @@ final readonly class StorageStatisticsController
         private SizeOverviewProvider $sizeOverviewProvider,
         private LanguageServiceFactory $languageServiceFactory,
         private SizeOverviewRefreshService $refreshService,
+        private SizeOverviewSnapshotStorage $snapshotStorage,
+        private StorageUsageNotificationRegistry $notificationRegistry,
         private UriBuilder $uriBuilder,
         private FlashMessageService $flashMessageService,
         private FormProtectionFactory $formProtectionFactory,
@@ -45,6 +49,14 @@ final readonly class StorageStatisticsController
             'refreshActionUrl' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics.refresh'),
             'refreshFormToken' => $this->formProtectionFactory->createFromRequest($request)
                 ->generateToken('size/storage-statistics', 'refresh'),
+            'resetFormId' => 'size-overview-reset-form',
+            'resetActionUrl' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics.reset'),
+            'resetFormToken' => $this->formProtectionFactory->createFromRequest($request)
+                ->generateToken('size/storage-statistics', 'reset'),
+            'resetModalTitle' => $this->translate('module.storageStatistics.resetModalTitle'),
+            'resetModalMessage' => $this->translate('module.storageStatistics.resetModalMessage'),
+            'resetModalConfirmLabel' => $this->translate('module.storageStatistics.resetModalConfirmLabel'),
+            'resetModalCancelLabel' => $this->translate('module.storageStatistics.resetModalCancelLabel'),
         ]);
 
         return $moduleTemplate->renderResponse('Modules/StorageStatistics');
@@ -86,6 +98,38 @@ final readonly class StorageStatisticsController
                 $this->translate('module.storageStatistics.refreshSuccess'),
                 $result->durationMs ?? 0
             ),
+            ContextualFeedbackSeverity::OK
+        );
+
+        return $this->redirectToOverview();
+    }
+
+    public function resetAction(ServerRequestInterface $request): ResponseInterface
+    {
+        if (!$this->sizeOverviewProvider->isAdminUser()) {
+            $this->enqueueFlashMessage(
+                $this->translate('module.storageStatistics.resetRequiresAdmin'),
+                ContextualFeedbackSeverity::WARNING
+            );
+
+            return $this->redirectToOverview();
+        }
+
+        $parsedBody = $request->getParsedBody();
+        $formToken = is_array($parsedBody) ? (string)($parsedBody['formToken'] ?? '') : '';
+        if (!$this->formProtectionFactory->createFromRequest($request)->validateToken(
+            $formToken,
+            'size/storage-statistics',
+            'reset'
+        )) {
+            return $this->redirectToOverview();
+        }
+
+        $this->snapshotStorage->removeSnapshot();
+        $this->notificationRegistry->reset();
+
+        $this->enqueueFlashMessage(
+            $this->translate('module.storageStatistics.resetSuccess'),
             ContextualFeedbackSeverity::OK
         );
 
