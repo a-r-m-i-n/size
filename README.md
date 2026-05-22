@@ -8,8 +8,10 @@ The extension provides:
 - a dashboard widget
 - an extended backend module with a visual storage overview
 - a persisted storage snapshot, so regular backend page loads do not trigger an expensive recalculation
+- a PSR-14 event before the snapshot is stored, so listeners can adjust the calculated overview
 - a manual refresh action in the backend module
 - a CLI command for Scheduler or manual execution
+- optional warning/full email notifications when a configured storage limit is exceeded
 
 ## How It Works
 
@@ -40,6 +42,7 @@ The backend module shows:
 - a colored storage distribution bar for the main categories `Media`, `Database`, `Code`, and `Misc`
 - the age of the last successful calculation
 - for backend administrators, the runtime of the last successful calculation
+- for backend administrators, the notification result of the last refresh check
 - an indicator if a recalculation is currently running
 - for backend administrators, a `Recalculate` action next to the update metadata
 
@@ -76,5 +79,19 @@ Examples:
 If set, the total section is rendered like `Total: 165.32 MB / 250 MB (66.1%)`.
 
 If `maximumTotalStorage` is not set, the module visualization always renders the bar fully filled and scales the category segments relative to the currently measured total.
+
+### `warningNotificationRecipients`
+
+Optional comma- or line-separated email addresses that receive a warning mail when the measured total is above `90%` and below `100%` of `maximumTotalStorage`.
+
+Each warning notification has a cooldown of 7 days.
+
+### `fullNotificationRecipients`
+
+Optional comma- or line-separated email addresses that receive a full mail when the measured total is at or above `100%` of `maximumTotalStorage`.
+
+Each full notification has a separate cooldown of 7 days.
+
+If an email address is configured in both recipient lists and the usage is at or above `100%`, it only receives the full notification.
 
 The manual backend-module refresh is restricted to backend administrators. Non-admin users still see the last update timestamp and refresh status, but they do not see the runtime or the `Recalculate` action. The CLI command `size:refresh` remains available regardless of backend permissions.

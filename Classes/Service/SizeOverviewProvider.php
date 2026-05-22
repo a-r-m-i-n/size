@@ -15,6 +15,7 @@ final class SizeOverviewProvider
     public function __construct(
         private readonly SizeOverviewSnapshotStorage $snapshotStorage,
         private readonly SizeOverviewRefreshService $refreshService,
+        private readonly StorageUsageNotificationRegistry $notificationRegistry,
         private readonly LanguageServiceFactory $languageServiceFactory,
     ) {}
 
@@ -47,6 +48,7 @@ final class SizeOverviewProvider
         $snapshot = $this->snapshotStorage->getSnapshot();
         $calculatedAt = is_array($snapshot) ? (int)$snapshot['calculatedAt'] : null;
         $durationMs = is_array($snapshot) ? (int)$snapshot['durationMs'] : null;
+        $lastNotificationCheck = $this->notificationRegistry->getLastCheck();
 
         $this->contextCache = [
             'overview' => $this->getOverview(),
@@ -54,6 +56,7 @@ final class SizeOverviewProvider
             'lastUpdatedLabel' => $calculatedAt !== null ? date('Y-m-d H:i:s', $calculatedAt) : null,
             'lastUpdatedAgeLabel' => $this->formatAgeLabel($calculatedAt),
             'lastRuntimeLabel' => $this->formatRuntimeLabel($durationMs),
+            'lastNotificationStatusLabel' => $this->formatLastNotificationStatusLabel($calculatedAt, $lastNotificationCheck),
             'hasSnapshot' => $snapshot !== null,
             'isRefreshRunning' => $this->refreshService->isRefreshRunning(),
             'isAdminUser' => $this->isAdminUser(),
@@ -187,6 +190,45 @@ final class SizeOverviewProvider
         }
 
         return number_format($durationMs / 1000, 2, '.', '') . ' s';
+    }
+
+    /**
+     * @param array{calculatedAt: int, warningRecipients: list<string>, fullRecipients: list<string>}|null $lastNotificationCheck
+     */
+    private function formatLastNotificationStatusLabel(?int $snapshotCalculatedAt, ?array $lastNotificationCheck): ?string
+    {
+        if ($snapshotCalculatedAt === null) {
+            return null;
+        }
+
+        if ($lastNotificationCheck === null || $lastNotificationCheck['calculatedAt'] !== $snapshotCalculatedAt) {
+            return $this->translate('module.storageStatistics.notification.none');
+        }
+
+        $warningRecipients = $lastNotificationCheck['warningRecipients'];
+        $fullRecipients = $lastNotificationCheck['fullRecipients'];
+
+        if ($warningRecipients !== [] && $fullRecipients !== []) {
+            return sprintf(
+                $this->translate('module.storageStatistics.notification.warningAndFull'),
+                implode(', ', $warningRecipients),
+                implode(', ', $fullRecipients),
+            );
+        }
+        if ($warningRecipients !== []) {
+            return sprintf(
+                $this->translate('module.storageStatistics.notification.warning'),
+                implode(', ', $warningRecipients),
+            );
+        }
+        if ($fullRecipients !== []) {
+            return sprintf(
+                $this->translate('module.storageStatistics.notification.full'),
+                implode(', ', $fullRecipients),
+            );
+        }
+
+        return $this->translate('module.storageStatistics.notification.none');
     }
 
     private function translate(string $key): string

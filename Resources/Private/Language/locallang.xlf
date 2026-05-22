@@ -108,6 +108,18 @@
             <trans-unit id="settings.maximumTotalStorage.description">
                 <source>Optional maximum value for the total storage display, for example 250 MB, 1 GB or 1.5 GB.</source>
             </trans-unit>
+            <trans-unit id="settings.warningNotificationRecipients">
+                <source>Warning notification recipients</source>
+            </trans-unit>
+            <trans-unit id="settings.warningNotificationRecipients.description">
+                <source>Optional comma- or line-separated email recipients for warning notifications above 90% and below 100%.</source>
+            </trans-unit>
+            <trans-unit id="settings.fullNotificationRecipients">
+                <source>Full notification recipients</source>
+            </trans-unit>
+            <trans-unit id="settings.fullNotificationRecipients.description">
+                <source>Optional comma- or line-separated email recipients for full notifications at or above 100%.</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Extended storage statistics</source>
             </trans-unit>
@@ -140,6 +152,21 @@
             </trans-unit>
             <trans-unit id="module.storageStatistics.lastUpdated">
                 <source>Last updated</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notification">
+                <source>Notification</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notification.none">
+                <source>No notification sent for the last check.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notification.warning">
+                <source>Warning sent to %s</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notification.full">
+                <source>Full sent to %s</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notification.warningAndFull">
+                <source>Warning sent to %s and full sent to %s</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.runtime">
                 <source>Runtime</source>
@@ -176,6 +203,39 @@
             </trans-unit>
             <trans-unit id="module.storageStatistics.refreshSuccess">
                 <source>Storage statistics snapshot refreshed in %d ms.</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.subject.warning">
+                <source>Storage usage warning: %s%% of the configured limit reached</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.subject.full">
+                <source>Storage usage full: %s%% of the configured limit reached</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.heading.warning">
+                <source>Storage usage warning</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.heading.full">
+                <source>Storage usage limit reached</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.body.warning">
+                <source>The configured storage limit has exceeded 90%.</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.body.full">
+                <source>The configured storage limit has reached or exceeded 100%.</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.type">
+                <source>Notification type</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.percentage">
+                <source>Usage</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.total">
+                <source>Total storage</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.maximum">
+                <source>Configured maximum</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.calculatedAt">
+                <source>Calculated at</source>
             </trans-unit>
             <trans-unit id="toolbar.openStorageStatistics">
                 <source>Extended storage usage statistics</source>

@@ -1,0 +1,31 @@
+<f:layout name="SystemEmail" />
+
+<f:section name="Title">{headline}</f:section>
+
+<f:section name="Main">
+    <f:if condition="{introduction}">
+        <h4>{introduction}</h4>
+    </f:if>
+    <table class="statistics" role="presentation">
+        <tr>
+            <th align="left"><f:translate key="mail.storageUsage.label.type" extensionName="size" /></th>
+            <td>{notificationType}</td>
+        </tr>
+        <tr>
+            <th align="left"><f:translate key="mail.storageUsage.label.percentage" extensionName="size" /></th>
+            <td>{percentage}%</td>
+        </tr>
+        <tr>
+            <th align="left"><f:translate key="mail.storageUsage.label.total" extensionName="size" /></th>
+            <td>{totalLabel}</td>
+        </tr>
+        <tr>
+            <th align="left"><f:translate key="mail.storageUsage.label.maximum" extensionName="size" /></th>
+            <td>{maximumLabel}</td>
+        </tr>
+        <tr>
+            <th align="left"><f:translate key="mail.storageUsage.label.calculatedAt" extensionName="size" /></th>
+            <td>{calculatedAtLabel}</td>
+        </tr>
+    </table>
+</f:section>

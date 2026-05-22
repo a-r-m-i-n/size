@@ -28,6 +28,7 @@
                             <span class="size-storage-meta-detail">({lastUpdatedLabel})</span>
                         </f:if>
                     </span>
+
                     <f:if condition="{isAdminUser}">
                         <span class="size-storage-meta-item">
                             <strong><f:translate key="module.storageStatistics.runtime" extensionName="size" />:</strong>
@@ -48,6 +49,16 @@
                         </span>
                     </f:if>
                 </div>
+                <f:if condition="{isAdminUser}">
+                    <f:if condition="{lastNotificationStatusLabel}">
+                        <div class="size-storage-meta">
+                            <span class="size-storage-meta-item">
+                                <strong><f:translate key="module.storageStatistics.notification" extensionName="size" />:</strong>
+                                <span class="size-storage-meta-detail">{lastNotificationStatusLabel}</span>
+                            </span>
+                        </div>
+                    </f:if>
+                </f:if>
             </div>
             <div class="size-storage-total">
                 <span class="size-storage-total-label"><f:translate key="section.total" extensionName="size" /></span>
