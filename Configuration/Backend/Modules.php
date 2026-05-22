@@ -17,6 +17,10 @@ return [
             '_default' => [
                 'target' => StorageStatisticsController::class . '::overviewAction',
             ],
+            'refresh' => [
+                'target' => StorageStatisticsController::class . '::refreshAction',
+                'methods' => ['POST'],
+            ],
         ],
     ],
 ];

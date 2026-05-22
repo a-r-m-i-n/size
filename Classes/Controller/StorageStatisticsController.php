@@ -7,9 +7,16 @@ namespace T3\Size\Controller;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use T3\Size\Service\SizeOverviewProvider;
+use T3\Size\Service\SizeOverviewRefreshService;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
+use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 #[AsController]
 final readonly class StorageStatisticsController
@@ -18,15 +25,84 @@ final readonly class StorageStatisticsController
         private ModuleTemplateFactory $moduleTemplateFactory,
         private SizeOverviewProvider $sizeOverviewProvider,
         private LanguageServiceFactory $languageServiceFactory,
+        private SizeOverviewRefreshService $refreshService,
+        private UriBuilder $uriBuilder,
+        private FlashMessageService $flashMessageService,
+        private FormProtectionFactory $formProtectionFactory,
     ) {}
 
     public function overviewAction(ServerRequestInterface $request): ResponseInterface
     {
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
         $moduleTemplate->setTitle($this->translate('module.storageStatistics.title'));
-        $moduleTemplate->assignMultiple($this->sizeOverviewProvider->getOverview());
+        $context = $this->sizeOverviewProvider->getOverviewContext();
+
+        $moduleTemplate->assignMultiple([
+            ...$context['overview'],
+            ...$context,
+            'refreshFormId' => 'size-overview-refresh-form',
+            'refreshActionUrl' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics.refresh'),
+            'refreshFormToken' => $this->formProtectionFactory->createFromRequest($request)
+                ->generateToken('size/storage-statistics', 'refresh'),
+        ]);
 
         return $moduleTemplate->renderResponse('Modules/StorageStatistics');
+    }
+
+    public function refreshAction(ServerRequestInterface $request): ResponseInterface
+    {
+        if (!$this->sizeOverviewProvider->isManualRefreshEnabled()) {
+            $this->enqueueFlashMessage(
+                $this->translate('module.storageStatistics.refreshDisabled'),
+                ContextualFeedbackSeverity::WARNING
+            );
+
+            return $this->redirectToOverview();
+        }
+
+        $parsedBody = $request->getParsedBody();
+        $formToken = is_array($parsedBody) ? (string)($parsedBody['formToken'] ?? '') : '';
+        if (!$this->formProtectionFactory->createFromRequest($request)->validateToken(
+            $formToken,
+            'size/storage-statistics',
+            'refresh'
+        )) {
+            return $this->redirectToOverview();
+        }
+
+        $result = $this->refreshService->refresh();
+        if ($result->wasLocked()) {
+            $this->enqueueFlashMessage(
+                $this->translate('module.storageStatistics.refreshLocked'),
+                ContextualFeedbackSeverity::WARNING
+            );
+
+            return $this->redirectToOverview();
+        }
+
+        $this->enqueueFlashMessage(
+            sprintf(
+                $this->translate('module.storageStatistics.refreshSuccess'),
+                $result->durationMs ?? 0
+            ),
+            ContextualFeedbackSeverity::OK
+        );
+
+        return $this->redirectToOverview();
+    }
+
+    private function redirectToOverview(): ResponseInterface
+    {
+        return new RedirectResponse(
+            (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics')
+        );
+    }
+
+    private function enqueueFlashMessage(string $message, ContextualFeedbackSeverity $severity): void
+    {
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(
+            new FlashMessage($message, '', $severity, true)
+        );
     }
 
     private function translate(string $key): string

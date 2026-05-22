@@ -16,6 +16,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbarItemInterface
 {
     private ServerRequestInterface $request;
+    private ?array $overview = null;
 
     public function __construct(
         private readonly ModuleProvider $moduleProvider,
@@ -37,7 +38,7 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     public function getItem(): string
     {
         $view = $this->backendViewFactory->create($this->request, ['t3/size']);
-        $view->assignMultiple($this->sizeOverviewProvider->getOverview());
+        $view->assignMultiple($this->getOverview());
 
         return $view->render('ToolbarItems/SizeToolbarItem');
 
@@ -68,7 +69,7 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     {
         $view = $this->backendViewFactory->create($this->request, ['t3/size']);
         $view->assignMultiple([
-            ...$this->sizeOverviewProvider->getOverview(),
+            ...$this->getOverview(),
             'storageStatisticsModuleUrl' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics'),
         ]);
 
@@ -90,5 +91,14 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
     private function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    private function getOverview(): array
+    {
+        if ($this->overview === null) {
+            $this->overview = $this->sizeOverviewProvider->getOverview();
+        }
+
+        return $this->overview;
     }
 }

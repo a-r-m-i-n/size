@@ -96,6 +96,12 @@
             <trans-unit id="settings.maximumTotalStorage.description">
                 <source>Optional maximum value for the total storage display, for example 250 MB, 1 GB or 1.5 GB.</source>
             </trans-unit>
+            <trans-unit id="settings.enableManualRefreshButton">
+                <source>Enable manual refresh button</source>
+            </trans-unit>
+            <trans-unit id="settings.enableManualRefreshButton.description">
+                <source>Shows the manual refresh button in the backend module. The CLI command remains available.</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Extended storage statistics</source>
             </trans-unit>
@@ -112,7 +118,43 @@
                 <source>Unnamed storage</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.miscDescription">
-                <source>Includes project root files plus the config and var directories.</source>
+                <source>Includes project root files plus the config, var, and public/typo3temp directories.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.lastUpdated">
+                <source>Last updated</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.runtime">
+                <source>Runtime</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.calculationRunning">
+                <source>Refresh currently running</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.notMeasuredYet">
+                <source>Not measured yet</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.justNow">
+                <source>Just now</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.minutesAgo">
+                <source>%d minute(s) ago</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.hoursAgo">
+                <source>%d hour(s) ago</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.daysAgo">
+                <source>%d day(s) ago</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.refreshButton">
+                <source>Recalculate</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.refreshDisabled">
+                <source>Manual refresh is disabled in the extension settings.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.refreshLocked">
+                <source>A refresh is already running. No second calculation was started.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.refreshSuccess">
+                <source>Storage statistics snapshot refreshed in %d ms.</source>
             </trans-unit>
             <trans-unit id="toolbar.openStorageStatistics">
                 <source>Extended storage usage statistics</source>

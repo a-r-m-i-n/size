@@ -5,11 +5,43 @@
 />
 
 <div class="module-body size-storage-module">
+    <f:if condition="{manualRefreshEnabled}">
+        <form id="{refreshFormId}" action="{refreshActionUrl}" method="post">
+            <input type="hidden" name="formToken" value="{refreshFormToken}" />
+        </form>
+    </f:if>
+
     <div class="size-storage-card">
         <div class="size-storage-card-header">
             <div>
                 <p class="size-storage-kicker"><f:translate key="module.storageStatistics.kicker" extensionName="size" /></p>
                 <h1 class="size-storage-title"><f:translate key="module.storageStatistics.title" extensionName="size" /></h1>
+                <div class="size-storage-meta">
+                    <span class="size-storage-meta-item">
+                        <strong><f:translate key="module.storageStatistics.lastUpdated" extensionName="size" />:</strong>
+                        {lastUpdatedAgeLabel}
+                        <f:if condition="{lastUpdatedLabel}">
+                            <span class="size-storage-meta-detail">({lastUpdatedLabel})</span>
+                        </f:if>
+                    </span>
+                    <span class="size-storage-meta-item">
+                        <strong><f:translate key="module.storageStatistics.runtime" extensionName="size" />:</strong>
+                        {lastRuntimeLabel}
+                    </span>
+                    <f:if condition="{manualRefreshEnabled}">
+                        <button class="size-storage-recalculate" type="submit" form="{refreshFormId}">
+                            <span class="size-storage-recalculate-icon">
+                                <core:icon identifier="actions-refresh" alternativeMarkupIdentifier="inline" size="small" />
+                            </span>
+                            <span><f:translate key="module.storageStatistics.refreshButton" extensionName="size" /></span>
+                        </button>
+                    </f:if>
+                    <f:if condition="{isRefreshRunning}">
+                        <span class="size-storage-meta-item size-storage-meta-running">
+                            <f:translate key="module.storageStatistics.calculationRunning" extensionName="size" />
+                        </span>
+                    </f:if>
+                </div>
             </div>
             <div class="size-storage-total">
                 <span class="size-storage-total-label"><f:translate key="section.total" extensionName="size" /></span>
