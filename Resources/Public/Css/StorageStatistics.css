@@ -297,6 +297,8 @@
 
 .size-storage-table thead th {
     background-color: transparent;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
 }
 
 .size-storage-table th:last-child,
@@ -315,6 +317,52 @@
 .size-storage-table-cell-content {
     position: relative;
     z-index: 1;
+}
+
+.size-storage-sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.25rem 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.size-storage-sort-button-end {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.size-storage-sort-button::after {
+    content: "";
+    color: var(--size-storage-text-muted);
+    font-size: 0.82em;
+    line-height: 1;
+}
+
+.size-storage-sort-button:hover::after,
+.size-storage-sort-button.is-active::after {
+    color: currentColor;
+}
+
+.size-storage-sort-button[data-sort-direction="asc"]::after {
+    content: "^";
+}
+
+.size-storage-sort-button[data-sort-direction="desc"]::after {
+    content: "v";
+}
+
+.size-storage-sort-button:focus-visible {
+    outline: 2px solid var(--size-storage-database);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .size-storage-table-media {

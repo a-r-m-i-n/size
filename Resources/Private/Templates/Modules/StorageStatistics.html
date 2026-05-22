@@ -3,6 +3,10 @@
     identifier="size-storage-statistics"
     href="EXT:size/Resources/Public/Css/StorageStatistics.css"
 />
+<f:asset.script
+    identifier="size-storage-statistics-sorting"
+    src="EXT:size/Resources/Public/JavaScript/StorageStatistics.js"
+/>
 
 <div class="module-body size-storage-module">
     <f:if condition="{manualRefreshEnabled}">
@@ -191,18 +195,57 @@
                                 <span class="size-storage-connection-total">{storage.total.label}</span>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-sm size-storage-table size-storage-table-media">
+                                <table
+                                    class="table table-sm size-storage-table size-storage-table-media"
+                                    data-sortable-table="1"
+                                >
                                     <thead>
                                         <tr>
-                                            <th><f:translate key="section.fileadmin" extensionName="size" /></th>
-                                            <th class="text-end"><f:translate key="table.files" extensionName="size" /></th>
-                                            <th class="text-end"><f:translate key="table.size" extensionName="size" /></th>
+                                            <th scope="col" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button"
+                                                    data-sort-key="label"
+                                                    data-sort-type="text"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="section.fileadmin" extensionName="size" /></span>
+                                                </button>
+                                            </th>
+                                            <th scope="col" class="text-end" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button size-storage-sort-button-end"
+                                                    data-sort-key="fileCount"
+                                                    data-sort-type="number"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.files" extensionName="size" /></span>
+                                                </button>
+                                            </th>
+                                            <th scope="col" class="text-end" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button size-storage-sort-button-end"
+                                                    data-sort-key="bytes"
+                                                    data-sort-type="number"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.size" extensionName="size" /></span>
+                                                </button>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <f:for each="{storage.categories}" as="mediaCategory">
                                             <tr
                                                 class="size-storage-table-row"
+                                                data-label="{mediaCategory.label}"
+                                                data-file-count="{mediaCategory.fileCount}"
+                                                data-bytes="{mediaCategory.bytes}"
                                                 style="--size-storage-row-fill: {mediaCategory.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
                                             >
                                                 <td>
@@ -251,18 +294,58 @@
                                 <span class="size-storage-connection-total">{connection.label}</span>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-sm size-storage-table size-storage-table-database">
+                                <table
+                                    class="table table-sm size-storage-table size-storage-table-database"
+                                    data-sortable-table="1"
+                                >
                                     <thead>
                                         <tr>
-                                            <th><f:translate key="table.table" extensionName="size" /></th>
-                                            <th class="text-end"><f:translate key="table.rows" extensionName="size" /></th>
-                                            <th class="text-end"><f:translate key="table.size" extensionName="size" /></th>
+                                            <th scope="col" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button"
+                                                    data-sort-key="label"
+                                                    data-sort-type="text"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.table" extensionName="size" /></span>
+                                                </button>
+                                            </th>
+                                            <th scope="col" class="text-end" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button size-storage-sort-button-end"
+                                                    data-sort-key="rowCount"
+                                                    data-sort-type="number"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.rows" extensionName="size" /></span>
+                                                </button>
+                                            </th>
+                                            <th scope="col" class="text-end" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button size-storage-sort-button-end"
+                                                    data-sort-key="bytes"
+                                                    data-sort-type="number"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.size" extensionName="size" /></span>
+                                                </button>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <f:for each="{connection.tables}" as="tableRow">
                                             <tr
                                                 class="size-storage-table-row"
+                                                data-label="{tableRow.name}"
+                                                data-title="{tableRow.title}"
+                                                data-row-count="{tableRow.rowCount}"
+                                                data-bytes="{tableRow.bytes}"
                                                 style="--size-storage-row-fill: {tableRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
                                             >
                                                 <td>

@@ -147,6 +147,9 @@
             <trans-unit id="module.storageStatistics.refreshButton">
                 <source>Recalculate</source>
             </trans-unit>
+            <trans-unit id="module.storageStatistics.sortColumn">
+                <source>Sort column</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.refreshDisabled">
                 <source>Manual refresh is disabled in the extension settings.</source>
             </trans-unit>
