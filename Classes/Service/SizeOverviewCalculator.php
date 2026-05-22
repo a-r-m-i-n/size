@@ -66,7 +66,9 @@ final class SizeOverviewCalculator
      *         label: string,
      *         bytes: int,
      *         formattedBytes: string,
-     *         fileCount: int
+     *         fileCount: int,
+     *         sizeLabel: string,
+     *         percentage: float
      *       }>
      *     }>
      *   },
@@ -83,8 +85,11 @@ final class SizeOverviewCalculator
      *         iconIdentifier: string,
      *         usesFallbackIcon: bool,
      *         rowCount: int|null,
+     *         rowCountLabel: string,
      *         bytes: int|null,
      *         formattedBytes: string,
+     *         sizeLabel: string,
+     *         percentage: float,
      *         available: bool
      *       }>
      *     }>,
@@ -572,6 +577,7 @@ final class SizeOverviewCalculator
             $totalBytes = array_sum(array_map(static fn(array $category): int => $category['bytes'], $categories));
             foreach ($categories as &$category) {
                 $category['formattedBytes'] = $this->formatBytes($category['bytes']);
+                $category['percentage'] = $totalBytes > 0 ? ($category['bytes'] / $totalBytes * 100) : 0.0;
                 $category['sizeLabel'] = sprintf(
                     '%s (%s)',
                     $category['formattedBytes'],
@@ -610,7 +616,7 @@ final class SizeOverviewCalculator
      *   storages: list<array{
      *     name: string,
      *     total: array{bytes: int, label: string},
-     *     categories: list<array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string}>
+     *     categories: list<array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}>
      *   }>
      * } $mediaBreakdown
      * @return array{bytes: int, label: string}
@@ -632,7 +638,7 @@ final class SizeOverviewCalculator
      *     bytes: int|null,
      *     label: string,
      *     available: bool,
-     *     tables: list<array{name: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, available: bool}>
+     *     tables: list<array{name: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      *   }>,
      *   total: array{bytes: int|null, label: string, available: bool}
      * }
@@ -666,7 +672,7 @@ final class SizeOverviewCalculator
      *   bytes: int|null,
      *   label: string,
      *   available: bool,
-     *   tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, available: bool}>
+     *   tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      * }
      */
     private function getSingleDatabaseOverview(string $connectionName): array
@@ -683,6 +689,7 @@ final class SizeOverviewCalculator
                 $bytes = array_sum(array_map(static fn(array $table): int => (int)$table['bytes'], $availableTables));
                 foreach ($tables as &$table) {
                     if ($table['available'] && $table['bytes'] !== null) {
+                        $table['percentage'] = $bytes > 0 ? ((int)$table['bytes'] / $bytes * 100) : 0.0;
                         $table['sizeLabel'] = sprintf(
                             '%s (%s)',
                             $table['formattedBytes'],
@@ -706,7 +713,7 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, available: bool}>
+     * @return list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      */
     private function getDatabaseTablesOverview(Typo3Connection $connection): array
     {
@@ -729,6 +736,7 @@ final class SizeOverviewCalculator
                 'bytes' => $bytes,
                 'formattedBytes' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
                 'sizeLabel' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
+                'percentage' => 0.0,
                 'available' => $bytes !== null,
             ];
         }
@@ -1437,7 +1445,7 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array<string, array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string}>
+     * @return array<string, array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}>
      */
     private function createEmptyMediaCategories(): array
     {
@@ -1451,6 +1459,7 @@ final class SizeOverviewCalculator
                 'formattedBytes' => $this->formatBytes(0),
                 'fileCount' => 0,
                 'sizeLabel' => $this->formatBytes(0) . ' (0.0%)',
+                'percentage' => 0.0,
             ];
         }
 

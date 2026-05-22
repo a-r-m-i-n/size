@@ -191,7 +191,7 @@
                                 <span class="size-storage-connection-total">{storage.total.label}</span>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-sm table-striped table-hover size-storage-table">
+                                <table class="table table-sm size-storage-table size-storage-table-media">
                                     <thead>
                                         <tr>
                                             <th><f:translate key="section.fileadmin" extensionName="size" /></th>
@@ -201,17 +201,24 @@
                                     </thead>
                                     <tbody>
                                         <f:for each="{storage.categories}" as="mediaCategory">
-                                            <tr>
+                                            <tr
+                                                class="size-storage-table-row"
+                                                style="--size-storage-row-fill: {mediaCategory.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
+                                            >
                                                 <td>
-                                                    <span class="size-storage-table-label">
+                                                    <span class="size-storage-table-cell-content size-storage-table-label">
                                                         <span class="size-storage-table-icon size-storage-detail-icon-media">
                                                             <core:icon identifier="{mediaCategory.iconIdentifier}" alternativeMarkupIdentifier="inline" size="small" />
                                                         </span>
                                                         <span>{mediaCategory.label}</span>
                                                     </span>
                                                 </td>
-                                                <td class="text-end">{mediaCategory.fileCount}</td>
-                                                <td class="text-end">{mediaCategory.sizeLabel}</td>
+                                                <td class="text-end">
+                                                    <span class="size-storage-table-cell-content">{mediaCategory.fileCount}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="size-storage-table-cell-content">{mediaCategory.sizeLabel}</span>
+                                                </td>
                                             </tr>
                                         </f:for>
                                     </tbody>
@@ -244,7 +251,7 @@
                                 <span class="size-storage-connection-total">{connection.label}</span>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-sm table-striped table-hover size-storage-table">
+                                <table class="table table-sm size-storage-table size-storage-table-database">
                                     <thead>
                                         <tr>
                                             <th><f:translate key="table.table" extensionName="size" /></th>
@@ -254,9 +261,12 @@
                                     </thead>
                                     <tbody>
                                         <f:for each="{connection.tables}" as="tableRow">
-                                            <tr>
+                                            <tr
+                                                class="size-storage-table-row"
+                                                style="--size-storage-row-fill: {tableRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
+                                            >
                                                 <td>
-                                                    <span class="size-storage-table-label">
+                                                    <span class="size-storage-table-cell-content size-storage-table-label">
                                                         <f:if condition="{tableRow.usesFallbackIcon}">
                                                             <f:then>
                                                                 <span class="size-storage-table-icon size-storage-table-icon-muted">
@@ -279,8 +289,12 @@
                                                         </span>
                                                     </span>
                                                 </td>
-                                                <td class="text-end">{tableRow.rowCountLabel}</td>
-                                                <td class="text-end">{tableRow.sizeLabel}</td>
+                                                <td class="text-end">
+                                                    <span class="size-storage-table-cell-content">{tableRow.rowCountLabel}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="size-storage-table-cell-content">{tableRow.sizeLabel}</span>
+                                                </td>
                                             </tr>
                                         </f:for>
                                     </tbody>
