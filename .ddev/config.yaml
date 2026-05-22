@@ -11,5 +11,7 @@ xdebug_enabled: false
 additional_hostnames:
     - v13.size
     - v14.size
+    - v13-classic.size
+    - v14-classic.size
 additional_fqdns: []
 use_dns_when_possible: true

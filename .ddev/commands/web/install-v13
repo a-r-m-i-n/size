@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 VERSION=v13
 
 rm -rf /var/www/html/$VERSION/*
@@ -14,7 +16,7 @@ composer req t3/cms:'^13' $PACKAGE_NAME:'*@dev' --no-progress -n -d /var/www/htm
 
 cd /var/www/html/$VERSION
 
-mysql -h db -u root -p"root" -e "CREATE DATABASE ${VERSION};"
+mysql -h db -u root -p"root" -e "DROP DATABASE IF EXISTS \`${VERSION}\`; CREATE DATABASE \`${VERSION}\`;"
 
 vendor/bin/typo3 setup -n --dbname=$VERSION --password=$TYPO3_DB_PASSWORD --create-site="https://${VERSION}.size.ddev.site" --admin-user-password=$TYPO3_SETUP_ADMIN_PASSWORD
 

@@ -8,6 +8,9 @@ This repository contains a TYPO3 extension with Composer type `typo3-cms-extensi
 - Composer package: `t3/size`
 - Minimum PHP version: `8.2`
 - Supported TYPO3 versions: `13.4` and `14.3`
+- Available local TYPO3 environments:
+  - Composer mode: `v13`, `v14`
+  - Classic mode: `v13-classic`, `v14-classic`
 - PHP namespace root: `T3\\Size\\`
 
 ## Mandatory Rules
@@ -24,26 +27,45 @@ This repository contains a TYPO3 extension with Composer type `typo3-cms-extensi
 ## Command Execution
 
 - When commands must be executed for the TYPO3 project, use `ddev exec`.
-- When database queries must be executed via DDEV, explicitly target the intended database schema (`v13` or `v14`). Do not assume TYPO3 tables are in the default `db` schema.
-- Important: inside the container, TYPO3 project environments are located in the `v13` and `v14` subdirectories.
+- When database queries must be executed via DDEV, explicitly target the intended database schema (`v13`, `v14`, `v13_classic`, or `v14_classic`). Do not assume TYPO3 tables are in the default `db` schema.
+- Important: inside the container, TYPO3 project environments are located in these subdirectories:
+  - Composer mode: `v13` and `v14`
+  - Classic mode: `v13-classic` and `v14-classic`
+- Important: Classic mode uses the webroot directly in the environment directory and stores configuration in `typo3conf/system/`. Composer mode uses `public/` as webroot and stores configuration in `config/system/`.
 - Therefore, TYPO3-related commands must be executed relative to the intended environment, for example:
 
 ```bash
 ddev exec bash -lc "cd v13 && php vendor/bin/typo3 list"
 ddev exec bash -lc "cd v14 && php vendor/bin/typo3 list"
+ddev exec bash -lc "cd v13-classic && php typo3/sysext/core/bin/typo3 list"
+ddev exec bash -lc "cd v14-classic && php typo3/sysext/core/bin/typo3 list"
 ddev exec bash -lc "cd v13 && composer update"
 ddev exec bash -lc "cd v14 && composer update"
 ddev mysql v13 -e "SHOW TABLES LIKE 'sys_file';"
 ddev mysql v14 -e "SHOW TABLES LIKE 'sys_file';"
+ddev mysql v13_classic -e "SHOW TABLES LIKE 'sys_file';"
+ddev mysql v14_classic -e "SHOW TABLES LIKE 'sys_file';"
 ```
 
 - Avoid running TYPO3-specific project commands directly on the host if the same task should run inside the container.
-- If a change must be verified against TYPO3 behavior, consider whether it should be checked in both `v13` and `v14`.
-- If constructor signatures, dependency injection wiring, service definitions, or labels in localization are changed, flush TYPO3 caches in both environments:
+- If a change must be verified against TYPO3 behavior, consider whether it should be checked in Composer mode, Classic mode, or both major versions.
+- If constructor signatures, dependency injection wiring, service definitions, or labels in localization are changed, flush TYPO3 caches in all affected environments:
 
 ```bash
 ddev exec bash -lc "cd v13 && php vendor/bin/typo3 cache:flush"
 ddev exec bash -lc "cd v14 && php vendor/bin/typo3 cache:flush"
+ddev exec bash -lc "cd v13-classic && php typo3/sysext/core/bin/typo3 cache:flush"
+ddev exec bash -lc "cd v14-classic && php typo3/sysext/core/bin/typo3 cache:flush"
+```
+
+- To provision the local instances, use the provided DDEV commands instead of rebuilding the setup manually:
+
+```bash
+ddev install-v13
+ddev install-v14
+ddev install-v13-classic
+ddev install-v14-classic
+ddev install-all
 ```
 
 ## Code and Structure

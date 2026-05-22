@@ -21,8 +21,14 @@ services:
               consistency: cached
             - v13-data:/var/www/html/v13
             - v14-data:/var/www/html/v14
+            - v13-classic-data:/var/www/html/v13-classic
+            - v14-classic-data:/var/www/html/v14-classic
 volumes:
     v13-data:
         name: "${DDEV_SITENAME}-v13-data"
     v14-data:
         name: "${DDEV_SITENAME}-v14-data"
+    v13-classic-data:
+        name: "${DDEV_SITENAME}-v13-classic-data"
+    v14-classic-data:
+        name: "${DDEV_SITENAME}-v14-classic-data"

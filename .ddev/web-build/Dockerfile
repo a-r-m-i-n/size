@@ -8,6 +8,8 @@ RUN echo "<html><head><style>h2 {display:inline-block;margin-right:0.5em;vertica
 RUN echo "<body><h1>EXT:${EXTENSION_KEY} Dev Environments</h1><ul>" >> /var/www/html/index.html
 RUN echo '<li><h2>TYPO3 13.4 LTS</h2><a href="https://v13.'"${DDEV_SITENAME}"'.ddev.site/">Frontend</a> | <a href="https://v13.'"${DDEV_SITENAME}"'.ddev.site/typo3/">Backend</a></li>' >> /var/www/html/index.html
 RUN echo '<li><h2>TYPO3 14.3 LTS</h2><a href="https://v14.'"${DDEV_SITENAME}"'.ddev.site/">Frontend</a> | <a href="https://v14.'"${DDEV_SITENAME}"'.ddev.site/typo3/">Backend</a></li>' >> /var/www/html/index.html
+RUN echo '<li><h2>TYPO3 13.4 LTS (Classic Mode)</h2><a href="https://v13-classic.'"${DDEV_SITENAME}"'.ddev.site/">Frontend</a> | <a href="https://v13-classic.'"${DDEV_SITENAME}"'.ddev.site/typo3/">Backend</a></li>' >> /var/www/html/index.html
+RUN echo '<li><h2>TYPO3 14.3 LTS (Classic Mode)</h2><a href="https://v14-classic.'"${DDEV_SITENAME}"'.ddev.site/">Frontend</a> | <a href="https://v14-classic.'"${DDEV_SITENAME}"'.ddev.site/typo3/">Backend</a></li>' >> /var/www/html/index.html
 RUN echo "</ul>" >> /var/www/html/index.html
 RUN echo "<hr>" >> /var/www/html/index.html
 RUN echo "<h3>TYPO3 Backend</h3><ul><li><b>User:</b> <code>admin</code></li><li><b>Password:</b> <code>Password:joh316</code> (also Install Tool)</li></ul>" >> /var/www/html/index.html
@@ -19,6 +21,13 @@ RUN echo "<h1>Perform this first</h1> <code>ddev install-v13</code>" > /var/www/
 RUN mkdir -p /var/www/html/v14/public/typo3
 RUN echo "<h1>Perform this first</h1> <code>ddev install-v14</code>" > /var/www/html/v14/public/index.html
 RUN echo "<h1>Perform this first</h1> <code>ddev install-v14</code>" > /var/www/html/v14/public/typo3/index.html
+RUN mkdir -p /var/www/html/v13-classic/typo3
+RUN echo "<h1>Perform this first</h1> <code>ddev install-v13-classic</code>" > /var/www/html/v13-classic/index.html
+RUN echo "<h1>Perform this first</h1> <code>ddev install-v13-classic</code>" > /var/www/html/v13-classic/typo3/index.html
+RUN echo "<h1>Perform this first</h1> <code>ddev install-v13-classic</code>" > /var/www/html/v13-classic/typo3/install.php
+RUN mkdir -p /var/www/html/v14-classic/typo3
+RUN echo "<h1>Perform this first</h1> <code>ddev install-v14-classic</code>" > /var/www/html/v14-classic/index.html
+RUN echo "<h1>Perform this first</h1> <code>ddev install-v14-classic</code>" > /var/www/html/v14-classic/typo3/install.php
 
 ARG uid
 ARG gid

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "${SCRIPT_DIR}/../../scripts/install-classic-lib.sh"
+
+install_classic_instance "v13-classic" "13.4" "v13_classic" "https://v13-classic.size.ddev.site"
