@@ -8,10 +8,24 @@
     --size-storage-database: #4e7dcf;
     --size-storage-code: #8f58b8;
     --size-storage-misc: #b4554f;
-    --size-storage-available: #d5d7dc;
-    --size-storage-surface: linear-gradient(180deg, #fbfbfc 0%, #f2f4f7 100%);
-    --size-storage-border: #d5dbe3;
-    --size-storage-text-muted: #5b6470;
+    --size-storage-available: var(--typo3-state-default-border-color, #d5d7dc);
+    --size-storage-surface-base: var(--typo3-surface-bright, #fbfbfc);
+    --size-storage-surface-elevated: var(--typo3-surface-container-low, #f2f4f7);
+    --size-storage-surface: linear-gradient(180deg, var(--size-storage-surface-base) 0%, var(--size-storage-surface-elevated) 100%);
+    --size-storage-surface-hover: linear-gradient(180deg, var(--typo3-surface-container-low, #f5f7fa) 0%, var(--typo3-surface-container-base, #edf1f5) 100%);
+    --size-storage-border: var(--typo3-component-border-color, #d5dbe3);
+    --size-storage-text-muted: var(--typo3-text-color-variant, #5b6470);
+}
+
+[data-color-scheme=dark] .size-dashboard-widget,
+[data-bs-theme=dark] .size-dashboard-widget {
+    --size-storage-surface: linear-gradient(180deg, #232933 0%, #2c3440 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+    [data-color-scheme=auto] .size-dashboard-widget {
+        --size-storage-surface: linear-gradient(180deg, #232933 0%, #2c3440 100%);
+    }
 }
 
 .size-dashboard-widget-link {
@@ -29,7 +43,7 @@
 .size-dashboard-widget-link:hover,
 .size-dashboard-widget-link:focus {
     text-decoration: none;
-    background: var(--size-storage-surface);
+    background: var(--size-storage-surface-hover);
 }
 
 .size-dashboard-widget-header {
@@ -56,7 +70,7 @@
     overflow: hidden;
     min-height: 1rem;
     border-radius: 999px;
-    background: #e7eaef;
+    background: color-mix(in srgb, var(--size-storage-surface-elevated), var(--typo3-text-color-base, #000) 6%);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
