@@ -220,8 +220,13 @@ final class SizeOverviewCalculator
             'extensions' => 0,
             'dependencies' => 0,
         ];
+        $countedPaths = [];
 
-        foreach ($this->getComposerInstallPaths() as $package) {
+        foreach (array_merge($this->getComposerInstallPaths(), $this->getClassicExtensionPaths()) as $package) {
+            if (isset($countedPaths[$package['path']])) {
+                continue;
+            }
+            $countedPaths[$package['path']] = true;
             $groups[$package['group']] += $this->getPathSize($package['path']);
         }
 
@@ -233,6 +238,36 @@ final class SizeOverviewCalculator
             'dependencies' => $this->createByteValue($groups['dependencies']),
             'total' => $this->createByteValue($total),
         ];
+    }
+
+    /**
+     * @return list<array{group: string, path: string}>
+     */
+    private function getClassicExtensionPaths(): array
+    {
+        $extensionRoot = $this->normalizePath(Environment::getProjectPath() . '/typo3conf/ext');
+        if ($extensionRoot === null || !is_dir($extensionRoot)) {
+            return [];
+        }
+
+        $result = [];
+        foreach (new \FilesystemIterator($extensionRoot, \FilesystemIterator::SKIP_DOTS) as $item) {
+            if (!$item->isDir() && !$item->isLink()) {
+                continue;
+            }
+
+            $path = $this->normalizePath($item->getPathname());
+            if ($path === null) {
+                continue;
+            }
+
+            $result[] = [
+                'group' => 'extensions',
+                'path' => $path,
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -863,21 +898,23 @@ final class SizeOverviewCalculator
 
     private function getPathSize(string $path): int
     {
-        $systemMeasuredSize = $this->getPathSizeUsingSystemCommand($path);
+        $resolvedPath = $this->normalizePath($path) ?? $path;
+
+        $systemMeasuredSize = $this->getPathSizeUsingSystemCommand($resolvedPath);
         if ($systemMeasuredSize !== null) {
             return $systemMeasuredSize;
         }
 
-        if (is_file($path)) {
-            return (int)filesize($path);
+        if (is_file($resolvedPath)) {
+            return (int)filesize($resolvedPath);
         }
 
-        if (!is_dir($path) || !is_readable($path)) {
+        if (!is_dir($resolvedPath) || !is_readable($resolvedPath)) {
             return 0;
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator($resolvedPath, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST,
         );
 
