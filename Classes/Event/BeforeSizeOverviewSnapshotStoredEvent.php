@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Event;
 
@@ -13,7 +13,8 @@ final class BeforeSizeOverviewSnapshotStoredEvent
         private array $overview,
         private readonly int $calculatedAt,
         private readonly int $durationMs,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, mixed>

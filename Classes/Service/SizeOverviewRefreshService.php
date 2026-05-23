@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
@@ -19,7 +19,8 @@ final readonly class SizeOverviewRefreshService
         private SizeOverviewCalculator $sizeOverviewCalculator,
         private SizeOverviewSnapshotStorage $snapshotStorage,
         private EventDispatcherInterface $eventDispatcher,
-    ) {}
+    ) {
+    }
 
     public function refresh(): RefreshResult
     {
@@ -29,6 +30,7 @@ final readonly class SizeOverviewRefreshService
             $locker->acquire(LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE);
         } catch (LockAcquireWouldBlockException) {
             $locker->destroy();
+
             return RefreshResult::locked();
         }
 
@@ -59,6 +61,7 @@ final readonly class SizeOverviewRefreshService
             $locker->acquire(LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE);
         } catch (LockAcquireWouldBlockException) {
             $locker->destroy();
+
             return true;
         }
 

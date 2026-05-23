@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Command;
 
@@ -28,6 +28,7 @@ final class RefreshSizeOverviewCommand extends Command
 
         if ($result->wasLocked()) {
             $output->writeln('<error>Skipped refresh: another size overview refresh is already running.</error>');
+
             return self::FAILURE;
         }
 

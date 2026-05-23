@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Backend\Toolbar;
 
@@ -16,6 +16,9 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbarItemInterface
 {
     private ServerRequestInterface $request;
+    /**
+     * @var array<string, mixed>|null
+     */
     private ?array $overview = null;
 
     public function __construct(
@@ -23,7 +26,8 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
         private readonly BackendViewFactory $backendViewFactory,
         private readonly SizeOverviewProvider $sizeOverviewProvider,
         private readonly UriBuilder $uriBuilder,
-    ) {}
+    ) {
+    }
 
     public function setRequest(ServerRequestInterface $request): void
     {
@@ -42,22 +46,21 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
 
         return $view->render('ToolbarItems/SizeToolbarItem');
 
-
-//        $icon = $this->iconFactory->getIcon(
-//            'actions-info',
-//            IconSize::SMALL
-//        )->render();
-//
-//        return '
-//            <button
-//                type="button"
-//                class="toolbar-item-link dropdown-toggle"
-//                title="Projektinfo"
-//                aria-label="Projektinfo"
-//            >
-//                ' . $icon . '
-//            </button>
-//        ';
+        //        $icon = $this->iconFactory->getIcon(
+        //            'actions-info',
+        //            IconSize::SMALL
+        //        )->render();
+        //
+        //        return '
+        //            <button
+        //                type="button"
+        //                class="toolbar-item-link dropdown-toggle"
+        //                title="Projektinfo"
+        //                aria-label="Projektinfo"
+        //            >
+        //                ' . $icon . '
+        //            </button>
+        //        ';
     }
 
     public function hasDropDown(): bool
@@ -76,10 +79,13 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
         return $view->render('ToolbarItems/SizeToolbarItemDropDown');
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function getAdditionalAttributes(): array
     {
         return [
-//            'class' => 'toolbar-item-size',
+            //            'class' => 'toolbar-item-size',
         ];
     }
 
@@ -93,9 +99,12 @@ final class SizeToolbarItem implements ToolbarItemInterface, RequestAwareToolbar
         return $GLOBALS['BE_USER'];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function getOverview(): array
     {
-        if ($this->overview === null) {
+        if (null === $this->overview) {
             $this->overview = $this->sizeOverviewProvider->getOverview();
         }
 

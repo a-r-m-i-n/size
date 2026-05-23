@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
@@ -9,7 +9,13 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 
 final class SizeOverviewProvider
 {
+    /**
+     * @var array<string, mixed>|null
+     */
     private ?array $overviewCache = null;
+    /**
+     * @var array<string, mixed>|null
+     */
     private ?array $contextCache = null;
 
     public function __construct(
@@ -17,14 +23,15 @@ final class SizeOverviewProvider
         private readonly SizeOverviewRefreshService $refreshService,
         private readonly StorageUsageNotificationRegistry $notificationRegistry,
         private readonly LanguageServiceFactory $languageServiceFactory,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, mixed>
      */
     public function getOverview(): array
     {
-        if ($this->overviewCache !== null) {
+        if (null !== $this->overviewCache) {
             return $this->overviewCache;
         }
 
@@ -41,7 +48,7 @@ final class SizeOverviewProvider
      */
     public function getOverviewContext(): array
     {
-        if ($this->contextCache !== null) {
+        if (null !== $this->contextCache) {
             return $this->contextCache;
         }
 
@@ -53,11 +60,11 @@ final class SizeOverviewProvider
         $this->contextCache = [
             'overview' => $this->getOverview(),
             'lastUpdatedTimestamp' => $calculatedAt,
-            'lastUpdatedLabel' => $calculatedAt !== null ? date('Y-m-d H:i:s', $calculatedAt) : null,
+            'lastUpdatedLabel' => null !== $calculatedAt ? date('Y-m-d H:i:s', $calculatedAt) : null,
             'lastUpdatedAgeLabel' => $this->formatAgeLabel($calculatedAt),
             'lastRuntimeLabel' => $this->formatRuntimeLabel($durationMs),
             'lastNotificationStatusLabel' => $this->formatLastNotificationStatusLabel($calculatedAt, $lastNotificationCheck),
-            'hasSnapshot' => $snapshot !== null,
+            'hasSnapshot' => null !== $snapshot,
             'isRefreshRunning' => $this->refreshService->isRefreshRunning(),
             'isAdminUser' => $this->isAdminUser(),
         ];
@@ -159,7 +166,7 @@ final class SizeOverviewProvider
 
     private function formatAgeLabel(?int $timestamp): string
     {
-        if ($timestamp === null) {
+        if (null === $timestamp) {
             return $this->translate('module.storageStatistics.notMeasuredYet');
         }
 
@@ -169,20 +176,23 @@ final class SizeOverviewProvider
         }
         if ($seconds < 3600) {
             $minutes = (int)floor($seconds / 60);
+
             return sprintf($this->translate('module.storageStatistics.minutesAgo'), $minutes);
         }
         if ($seconds < 86400) {
             $hours = (int)floor($seconds / 3600);
+
             return sprintf($this->translate('module.storageStatistics.hoursAgo'), $hours);
         }
 
         $days = (int)floor($seconds / 86400);
+
         return sprintf($this->translate('module.storageStatistics.daysAgo'), $days);
     }
 
     private function formatRuntimeLabel(?int $durationMs): string
     {
-        if ($durationMs === null) {
+        if (null === $durationMs) {
             return $this->translate('module.storageStatistics.notMeasuredYet');
         }
         if ($durationMs < 1000) {
@@ -197,31 +207,31 @@ final class SizeOverviewProvider
      */
     private function formatLastNotificationStatusLabel(?int $snapshotCalculatedAt, ?array $lastNotificationCheck): ?string
     {
-        if ($snapshotCalculatedAt === null) {
+        if (null === $snapshotCalculatedAt) {
             return null;
         }
 
-        if ($lastNotificationCheck === null || $lastNotificationCheck['calculatedAt'] !== $snapshotCalculatedAt) {
+        if (null === $lastNotificationCheck || $lastNotificationCheck['calculatedAt'] !== $snapshotCalculatedAt) {
             return $this->translate('module.storageStatistics.notification.none');
         }
 
         $warningRecipients = $lastNotificationCheck['warningRecipients'];
         $fullRecipients = $lastNotificationCheck['fullRecipients'];
 
-        if ($warningRecipients !== [] && $fullRecipients !== []) {
+        if ([] !== $warningRecipients && [] !== $fullRecipients) {
             return sprintf(
                 $this->translate('module.storageStatistics.notification.warningAndFull'),
                 implode(', ', $warningRecipients),
                 implode(', ', $fullRecipients),
             );
         }
-        if ($warningRecipients !== []) {
+        if ([] !== $warningRecipients) {
             return sprintf(
                 $this->translate('module.storageStatistics.notification.warning'),
                 implode(', ', $warningRecipients),
             );
         }
-        if ($fullRecipients !== []) {
+        if ([] !== $fullRecipients) {
             return sprintf(
                 $this->translate('module.storageStatistics.notification.full'),
                 implode(', ', $fullRecipients),

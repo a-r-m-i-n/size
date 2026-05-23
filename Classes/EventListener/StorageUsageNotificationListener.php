@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\EventListener;
 
@@ -47,12 +47,14 @@ final readonly class StorageUsageNotificationListener
 
         if (($chart['isMaximumConfigured'] ?? false) !== true) {
             $this->notificationRegistry->storeLastCheck($event->getCalculatedAt(), [], []);
+
             return;
         }
 
         $percentage = $this->normalizePercentage($chart['totalPercentage'] ?? null);
-        if ($percentage === null) {
+        if (null === $percentage) {
             $this->notificationRegistry->storeLastCheck($event->getCalculatedAt(), [], []);
+
             return;
         }
 
@@ -63,7 +65,7 @@ final readonly class StorageUsageNotificationListener
 
         if ($percentage >= self::FULL_THRESHOLD) {
             $warningRecipients = array_values(array_diff($warningRecipients, $fullRecipients));
-            if ($warningRecipients !== [] && $this->canSendNotification(self::TYPE_WARNING, $event->getCalculatedAt())) {
+            if ([] !== $warningRecipients && $this->canSendNotification(self::TYPE_WARNING, $event->getCalculatedAt())) {
                 $warningSentRecipients = $this->sendNotification(
                     self::TYPE_WARNING,
                     $warningRecipients,
@@ -73,7 +75,7 @@ final readonly class StorageUsageNotificationListener
                     $event->getCalculatedAt()
                 );
             }
-            if ($fullRecipients !== [] && $this->canSendNotification(self::TYPE_FULL, $event->getCalculatedAt())) {
+            if ([] !== $fullRecipients && $this->canSendNotification(self::TYPE_FULL, $event->getCalculatedAt())) {
                 $fullSentRecipients = $this->sendNotification(
                     self::TYPE_FULL,
                     $fullRecipients,
@@ -84,7 +86,7 @@ final readonly class StorageUsageNotificationListener
                 );
             }
         } elseif ($percentage > self::WARNING_THRESHOLD) {
-            if ($warningRecipients !== [] && $this->canSendNotification(self::TYPE_WARNING, $event->getCalculatedAt())) {
+            if ([] !== $warningRecipients && $this->canSendNotification(self::TYPE_WARNING, $event->getCalculatedAt())) {
                 $warningSentRecipients = $this->sendNotification(
                     self::TYPE_WARNING,
                     $warningRecipients,
@@ -106,7 +108,8 @@ final readonly class StorageUsageNotificationListener
     /**
      * @param array<string, mixed> $total
      * @param array<string, mixed> $chart
-     * @param list<string> $recipients
+     * @param list<string>         $recipients
+     *
      * @return list<string>
      */
     private function sendNotification(
@@ -167,7 +170,7 @@ final readonly class StorageUsageNotificationListener
     private function canSendNotification(string $type, int $calculatedAt): bool
     {
         $lastSentTimestamp = $this->notificationRegistry->getLastSentTimestamp($type);
-        if ($lastSentTimestamp === null) {
+        if (null === $lastSentTimestamp) {
             return true;
         }
 
@@ -190,7 +193,7 @@ final readonly class StorageUsageNotificationListener
         }
 
         $rawValue = (string)($configuration[$key] ?? '');
-        if ($rawValue === '') {
+        if ('' === $rawValue) {
             return [];
         }
 
@@ -199,11 +202,11 @@ final readonly class StorageUsageNotificationListener
 
         foreach ($recipients as $recipient) {
             $recipient = trim($recipient);
-            if ($recipient === '') {
+            if ('' === $recipient) {
                 continue;
             }
             $validatedRecipient = filter_var($recipient, FILTER_VALIDATE_EMAIL);
-            if ($validatedRecipient === false) {
+            if (false === $validatedRecipient) {
                 continue;
             }
             $normalized[strtolower($validatedRecipient)] = $validatedRecipient;
@@ -225,7 +228,7 @@ final readonly class StorageUsageNotificationListener
 
     private function buildSubject(string $type, float $percentage, string $siteName): string
     {
-        $subjectKey = $type === self::TYPE_FULL
+        $subjectKey = self::TYPE_FULL === $type
             ? 'mail.storageUsage.subject.full'
             : 'mail.storageUsage.subject.warning';
 
@@ -234,7 +237,7 @@ final readonly class StorageUsageNotificationListener
             number_format($percentage, 1, '.', '')
         );
 
-        if ($siteName === '') {
+        if ('' === $siteName) {
             return $subject;
         }
 
@@ -243,14 +246,14 @@ final readonly class StorageUsageNotificationListener
 
     private function buildHeadline(string $type): string
     {
-        return $type === self::TYPE_FULL
+        return self::TYPE_FULL === $type
             ? $this->translate('mail.storageUsage.heading.full')
             : $this->translate('mail.storageUsage.heading.warning');
     }
 
     private function buildIntroduction(string $type): string
     {
-        return $type === self::TYPE_FULL
+        return self::TYPE_FULL === $type
             ? $this->translate('mail.storageUsage.body.full')
             : $this->translate('mail.storageUsage.body.warning');
     }
@@ -271,29 +274,26 @@ final readonly class StorageUsageNotificationListener
     {
         foreach ($this->siteFinder->getAllSites() as $site) {
             $siteUrl = rtrim((string)$site->getBase(), '/') . '/';
-            if ($siteUrl !== '/') {
+            if ('/' !== $siteUrl) {
                 return $siteUrl;
             }
         }
 
         try {
             $normalizedParams = NormalizedParams::createFromServerParams($_SERVER);
-            if (method_exists($normalizedParams, 'getSiteUrl')) {
-                return trim((string)$normalizedParams->getSiteUrl());
-            }
+
+            return trim((string)$normalizedParams->getSiteUrl());
         } catch (\Throwable) {
             return '';
         }
-
-        return '';
     }
 
     private function getServerIp(): string
     {
         $serverIp = trim((string)($_SERVER['SERVER_ADDR'] ?? $_SERVER['LOCAL_ADDR'] ?? ''));
-        if ($serverIp === '') {
+        if ('' === $serverIp) {
             $hostname = gethostname();
-            if (is_string($hostname) && $hostname !== '') {
+            if (is_string($hostname) && '' !== $hostname) {
                 $resolvedAddress = gethostbyname($hostname);
                 if ($resolvedAddress !== $hostname) {
                     $serverIp = trim($resolvedAddress);
@@ -301,7 +301,7 @@ final readonly class StorageUsageNotificationListener
             }
         }
 
-        return filter_var($serverIp, FILTER_VALIDATE_IP) !== false ? $serverIp : '';
+        return false !== filter_var($serverIp, FILTER_VALIDATE_IP) ? $serverIp : '';
     }
 
     private function formatBytes(int $bytes): string
@@ -312,10 +312,10 @@ final readonly class StorageUsageNotificationListener
 
         while ($value >= 1024 && isset($units[$unitIndex + 1])) {
             $value /= 1024;
-            $unitIndex++;
+            ++$unitIndex;
         }
 
-        $precision = $unitIndex === 0 ? 0 : 2;
+        $precision = 0 === $unitIndex ? 0 : 2;
         $formattedValue = number_format($value, $precision, '.', ' ');
 
         if ($precision > 0) {

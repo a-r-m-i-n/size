@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
@@ -13,7 +13,8 @@ final readonly class RefreshResult
         public string $status,
         public ?int $calculatedAt = null,
         public ?int $durationMs = null,
-    ) {}
+    ) {
+    }
 
     public static function refreshed(int $calculatedAt, int $durationMs): self
     {
@@ -27,11 +28,11 @@ final readonly class RefreshResult
 
     public function wasRefreshed(): bool
     {
-        return $this->status === self::STATUS_REFRESHED;
+        return self::STATUS_REFRESHED === $this->status;
     }
 
     public function wasLocked(): bool
     {
-        return $this->status === self::STATUS_LOCKED;
+        return self::STATUS_LOCKED === $this->status;
     }
 }

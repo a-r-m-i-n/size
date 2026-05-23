@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
@@ -13,7 +13,8 @@ final readonly class SizeOverviewSnapshotStorage
 
     public function __construct(
         private Registry $registry,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array{overview: array<string, mixed>, calculatedAt: int, durationMs: int}|null

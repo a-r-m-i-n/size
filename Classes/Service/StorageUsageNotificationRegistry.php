@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
@@ -15,7 +15,8 @@ final readonly class StorageUsageNotificationRegistry
 
     public function __construct(
         private Registry $registry,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array{calculatedAt: int, warningRecipients: list<string>, fullRecipients: list<string>}|null
@@ -45,8 +46,8 @@ final readonly class StorageUsageNotificationRegistry
     {
         $this->registry->set(self::REGISTRY_NAMESPACE, self::LAST_CHECK_KEY, [
             'calculatedAt' => $calculatedAt,
-            'warningRecipients' => array_values($warningRecipients),
-            'fullRecipients' => array_values($fullRecipients),
+            'warningRecipients' => $warningRecipients,
+            'fullRecipients' => $fullRecipients,
         ]);
     }
 
@@ -78,7 +79,6 @@ final readonly class StorageUsageNotificationRegistry
     }
 
     /**
-     * @param mixed $value
      * @return list<string>
      */
     private function normalizeRecipientList(mixed $value): array
@@ -89,13 +89,13 @@ final readonly class StorageUsageNotificationRegistry
 
         $recipients = [];
         foreach ($value as $recipient) {
-            if (!is_string($recipient) || $recipient === '') {
+            if (!is_string($recipient) || '' === $recipient) {
                 continue;
             }
             $recipients[] = $recipient;
         }
 
-        return array_values($recipients);
+        return $recipients;
     }
 
     private function resolveLastSentRegistryKey(string $type): string
@@ -103,10 +103,7 @@ final readonly class StorageUsageNotificationRegistry
         return match ($type) {
             'warning' => self::LAST_SENT_WARNING_KEY,
             'full' => self::LAST_SENT_FULL_KEY,
-            default => throw new \InvalidArgumentException(
-                sprintf('Unsupported notification type "%s"', $type),
-                1747909632
-            ),
+            default => throw new \InvalidArgumentException(sprintf('Unsupported notification type "%s"', $type), 1747909632),
         };
     }
 }

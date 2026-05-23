@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Widgets;
 
@@ -22,7 +22,8 @@ final class StorageUsageWidget implements WidgetInterface, RequestAwareWidgetInt
         private readonly BackendViewFactory $backendViewFactory,
         private readonly SizeOverviewProvider $sizeOverviewProvider,
         private readonly UriBuilder $uriBuilder,
-    ) {}
+    ) {
+    }
 
     public function setRequest(ServerRequestInterface $request): void
     {
@@ -43,11 +44,17 @@ final class StorageUsageWidget implements WidgetInterface, RequestAwareWidgetInt
         return $view->render('Widgets/StorageUsageWidget');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
         return [];
     }
 
+    /**
+     * @return list<string>
+     */
     public function getCssFiles(): array
     {
         return [

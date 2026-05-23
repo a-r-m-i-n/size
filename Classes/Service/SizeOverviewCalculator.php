@@ -1,13 +1,14 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
-use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Symfony\Component\Process\Process;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection as Typo3Connection;
@@ -17,7 +18,6 @@ use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\StorageRepository;
-use Symfony\Component\Process\Process;
 
 final class SizeOverviewCalculator
 {
@@ -31,81 +31,7 @@ final class SizeOverviewCalculator
     private const MEDIA_OTHER = 'other';
 
     /**
-     * @var array{
-     *   code: array{
-     *     vendor: array{bytes: int, label: string},
-     *     extensions: array{bytes: int, label: string},
-     *     dependencies: array{bytes: int, label: string},
-     *     rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *     total: array{bytes: int, label: string}
-     *   },
-     *   misc: array{
-     *     rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *     total: array{bytes: int, label: string}
-     *   },
-     *   chart: array{
-     *     categories: list<array{
-     *       identifier: string,
-     *       label: string,
-     *       bytes: int,
-     *       formattedBytes: string,
-     *       percentage: float,
-     *       colorClass: string
-     *     }>,
-     *     maximumBytes: int|null,
-     *     referenceBytes: int,
-     *     totalPercentage: float,
-     *     availableBytes: int|null,
-     *     availablePercentage: float|null,
-     *     availableLabel: string|null,
-     *     showAvailableSegment: bool,
-     *     isMaximumConfigured: bool
-     *   },
-     *   storages: array{
-     *     items: list<array{name: string, bytes: int|null, label: string}>,
-     *     total: array{bytes: int|null, label: string, summaryLabel: string, available: bool}
-     *   },
-     *   mediaBreakdown: array{
-     *     storages: list<array{
-     *       name: string,
-     *       total: array{bytes: int, label: string},
-     *       categories: list<array{
-     *         identifier: string,
-     *         iconIdentifier: string,
-     *         label: string,
-     *         bytes: int,
-     *         formattedBytes: string,
-     *         fileCount: int,
-     *         sizeLabel: string,
-     *         percentage: float
-     *       }>
-     *     }>
-     *   },
-     *   mediaBreakdownTotal: array{bytes: int, label: string},
-     *   database: array{
-     *     connections: list<array{
-     *       name: string,
-     *       bytes: int|null,
-     *       label: string,
-     *       available: bool,
-     *       tables: list<array{
-     *         name: string,
-     *         title: string|null,
-     *         iconIdentifier: string,
-     *         usesFallbackIcon: bool,
-     *         rowCount: int|null,
-     *         rowCountLabel: string,
-     *         bytes: int|null,
-     *         formattedBytes: string,
-     *         sizeLabel: string,
-     *         percentage: float,
-     *         available: bool
-     *       }>
-     *     }>,
-     *     total: array{bytes: int|null, label: string, summaryLabel: string, available: bool}
-     *   },
-     *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
-     * }|null
+     * @var array<string, mixed>|null
      */
     private ?array $overviewCache = null;
 
@@ -124,83 +50,15 @@ final class SizeOverviewCalculator
         private readonly ConnectionPool $connectionPool,
         private readonly LanguageServiceFactory $languageServiceFactory,
         private readonly ExtensionConfiguration $extensionConfiguration,
-    ) {}
+    ) {
+    }
 
     /**
-     * @return array{
-     *   code: array{
-     *     vendor: array{bytes: int, label: string},
-     *     extensions: array{bytes: int, label: string},
-     *     dependencies: array{bytes: int, label: string},
-     *     rows: list<array{identifier: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *     total: array{bytes: int, label: string, summaryLabel: string}
-     *   },
-     *   misc: array{
-     *     rows: list<array{identifier: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *     total: array{bytes: int, label: string, summaryLabel: string}
-     *   },
-     *   chart: array{
-     *     categories: list<array{
-     *       identifier: string,
-     *       label: string,
-     *       bytes: int,
-     *       formattedBytes: string,
-     *       percentage: float,
-     *       colorClass: string
-     *     }>,
-     *     maximumBytes: int|null,
-     *     referenceBytes: int,
-     *     totalPercentage: float,
-     *     availableBytes: int|null,
-     *     availablePercentage: float|null,
-     *     availableLabel: string|null,
-     *     showAvailableSegment: bool,
-     *     isMaximumConfigured: bool
-     *   },
-     *   storages: array{
-     *     items: list<array{name: string, bytes: int|null, label: string}>,
-     *     total: array{bytes: int|null, label: string, available: bool}
-     *   },
-     *   mediaBreakdown: array{
-     *     storages: list<array{
-     *       name: string,
-     *       total: array{bytes: int, label: string},
-     *       categories: list<array{
-     *         identifier: string,
-     *         iconIdentifier: string,
-     *         label: string,
-     *         bytes: int,
-     *         formattedBytes: string,
-     *         fileCount: int
-     *       }>
-     *     }>
-     *   },
-     *   mediaBreakdownTotal: array{bytes: int, label: string},
-     *   database: array{
-     *     connections: list<array{
-     *       name: string,
-     *       bytes: int|null,
-     *       label: string,
-     *       available: bool,
-     *       tables: list<array{
-     *         name: string,
-     *         title: string|null,
-     *         iconIdentifier: string,
-     *         usesFallbackIcon: bool,
-     *         rowCount: int|null,
-     *         bytes: int|null,
-     *         formattedBytes: string,
-     *         available: bool
-     *       }>
-     *     }>,
-     *     total: array{bytes: int|null, label: string, available: bool}
-     *   },
-     *   total: array{bytes: int, label: string, displayLabel: string, highlightClass: string, badgeClass: string}
-     * }
+     * @return array<string, mixed>
      */
     public function getOverview(): array
     {
-        if ($this->overviewCache !== null) {
+        if (null !== $this->overviewCache) {
             return $this->overviewCache;
         }
 
@@ -211,8 +69,8 @@ final class SizeOverviewCalculator
         $mediaBreakdownTotal = $this->getMediaBreakdownTotal($mediaBreakdown);
         $database = $this->getDatabaseOverview();
         $totalBytes = (
-            ($code['total']['bytes'] ?? 0)
-            + ($misc['total']['bytes'] ?? 0)
+            $code['total']['bytes']
+            + $misc['total']['bytes']
             + ($storages['total']['bytes'] ?? 0)
             + ($database['total']['bytes'] ?? 0)
         );
@@ -285,18 +143,21 @@ final class SizeOverviewCalculator
     private function getClassicExtensionPaths(): array
     {
         $extensionRoot = $this->normalizePath(Environment::getProjectPath() . '/typo3conf/ext');
-        if ($extensionRoot === null || !is_dir($extensionRoot)) {
+        if (null === $extensionRoot || !is_dir($extensionRoot)) {
             return [];
         }
 
         $result = [];
         foreach (new \FilesystemIterator($extensionRoot, \FilesystemIterator::SKIP_DOTS) as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
             if (!$item->isDir() && !$item->isLink()) {
                 continue;
             }
 
             $path = $this->normalizePath($item->getPathname());
-            if ($path === null) {
+            if (null === $path) {
                 continue;
             }
 
@@ -322,6 +183,9 @@ final class SizeOverviewCalculator
         $projectRootFilesBytes = 0;
 
         foreach (new \FilesystemIterator($projectPath, \FilesystemIterator::SKIP_DOTS) as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
             if ($item->isFile() && !$item->isLink()) {
                 $projectRootFilesBytes += $item->getSize();
             }
@@ -349,9 +213,9 @@ final class SizeOverviewCalculator
                 'bytes' => $this->getPathSize($publicPath . '/typo3temp'),
             ],
         ];
-        $totalBytes = array_sum(array_map(static fn(array $row): int => $row['bytes'], $rows));
+        $totalBytes = array_sum(array_map(static fn (array $row): int => $row['bytes'], $rows));
         $rows = array_map(
-            fn(array $row): array => $this->createBreakdownRow($row['identifier'], $row['labelKey'], $row['bytes'], $totalBytes),
+            fn (array $row): array => $this->createBreakdownRow($row['identifier'], $row['labelKey'], $row['bytes'], $totalBytes),
             $rows,
         );
 
@@ -382,7 +246,7 @@ final class SizeOverviewCalculator
             ];
             $storages[] = $storageData;
 
-            if ($storageMeasurement['bytes'] !== null) {
+            if (null !== $storageMeasurement['bytes']) {
                 foreach ($this->getNonOverlappingPaths($storageMeasurement['paths']) as $path) {
                     $countedTotalPaths[$path] = true;
                 }
@@ -418,7 +282,7 @@ final class SizeOverviewCalculator
             }
 
             $paths = $this->getStorageMeasuredPaths($storage);
-            if ($paths === []) {
+            if ([] === $paths) {
                 return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
             }
 
@@ -438,7 +302,7 @@ final class SizeOverviewCalculator
 
     private function resolveLocalStorageBasePath(ResourceStorage $storage): ?string
     {
-        if ($storage->getDriverType() !== 'Local') {
+        if ('Local' !== $storage->getDriverType()) {
             return null;
         }
 
@@ -446,17 +310,17 @@ final class SizeOverviewCalculator
         $basePath = (string)($configuration['basePath'] ?? '');
         $pathType = (string)($configuration['pathType'] ?? 'absolute');
 
-        if ($basePath === '') {
+        if ('' === $basePath) {
             return null;
         }
 
-        $absolutePath = $pathType === 'relative'
+        $absolutePath = 'relative' === $pathType
             ? Environment::getPublicPath() . '/' . ltrim($basePath, '/')
             : $basePath;
 
         $realPath = realpath($absolutePath);
 
-        return $realPath !== false && is_dir($realPath) ? $realPath : null;
+        return false !== $realPath && is_dir($realPath) ? $realPath : null;
     }
 
     /**
@@ -465,7 +329,7 @@ final class SizeOverviewCalculator
     private function getStorageMeasuredPaths(ResourceStorage $storage): array
     {
         $basePath = $this->resolveLocalStorageBasePath($storage);
-        if ($basePath === null) {
+        if (null === $basePath) {
             return [];
         }
 
@@ -503,7 +367,7 @@ final class SizeOverviewCalculator
 
         foreach ($iterator as $item) {
             if ($item->isFile() && !$item->isLink()) {
-                $fileCount++;
+                ++$fileCount;
             }
         }
 
@@ -515,6 +379,7 @@ final class SizeOverviewCalculator
 
     /**
      * @param list<string> $paths
+     *
      * @return list<string>
      */
     private function getNonOverlappingPaths(array $paths): array
@@ -526,7 +391,7 @@ final class SizeOverviewCalculator
 
         usort(
             $normalizedPaths,
-            static fn(string $left, string $right): int => strlen($left) <=> strlen($right),
+            static fn (string $left, string $right): int => strlen($left) <=> strlen($right),
         );
 
         $result = [];
@@ -559,13 +424,26 @@ final class SizeOverviewCalculator
      *       bytes: int,
      *       formattedBytes: string,
      *       fileCount: int,
-     *       sizeLabel: string
+     *       sizeLabel: string,
+     *       percentage: float
      *     }>
      *   }>
      * }
      */
     private function getMediaBreakdown(): array
     {
+        /**
+         * @var array<int, array<string, array{
+         *   identifier: string,
+         *   iconIdentifier: string,
+         *   label: string,
+         *   bytes: int,
+         *   formattedBytes: string,
+         *   fileCount: int,
+         *   sizeLabel: string,
+         *   percentage: float
+         * }>> $storageRows
+         */
         $storageRows = [];
 
         try {
@@ -600,6 +478,9 @@ final class SizeOverviewCalculator
                     (string)($row['mime_type'] ?? ''),
                     (string)($row['extension'] ?? ''),
                 );
+                if (!isset($storageRows[$storageUid][$category])) {
+                    $storageRows[$storageUid][$category] = $this->createMediaCategoryValue($category);
+                }
                 $storageRows[$storageUid][$category]['bytes'] += max(0, (int)($row['total_size'] ?? 0));
                 $storageRows[$storageUid][$category]['fileCount'] += max(0, (int)($row['file_count'] ?? 0));
             }
@@ -617,28 +498,37 @@ final class SizeOverviewCalculator
 
         $storages = [];
         foreach ($this->storageRepository->findAll() as $storage) {
+            /** @var array<string, array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}> $categories */
             $categories = $storageRows[$storage->getUid()] ?? $this->createEmptyMediaCategories();
             $storageMeasurement = $this->getStorageMeasurement($storage);
-            $categorizedBytes = array_sum(array_map(static fn(array $category): int => $category['bytes'], $categories));
-            $categorizedFileCount = array_sum(array_map(static fn(array $category): int => $category['fileCount'], $categories));
+            $categorizedBytes = array_sum(array_map(static fn (array $category): int => $category['bytes'], $categories));
+            $categorizedFileCount = array_sum(array_map(static fn (array $category): int => $category['fileCount'], $categories));
+            $otherCategory = $categories[self::MEDIA_OTHER] ?? $this->createMediaCategoryValue(self::MEDIA_OTHER);
 
-            if ($storageMeasurement['bytes'] !== null && $storageMeasurement['bytes'] > $categorizedBytes) {
-                $categories[self::MEDIA_OTHER]['bytes'] += $storageMeasurement['bytes'] - $categorizedBytes;
+            if (null !== $storageMeasurement['bytes'] && $storageMeasurement['bytes'] > $categorizedBytes) {
+                $otherCategory['bytes'] += $storageMeasurement['bytes'] - $categorizedBytes;
             }
-            if ($storageMeasurement['fileCount'] !== null && $storageMeasurement['fileCount'] > $categorizedFileCount) {
-                $categories[self::MEDIA_OTHER]['fileCount'] += $storageMeasurement['fileCount'] - $categorizedFileCount;
+            if (null !== $storageMeasurement['fileCount'] && $storageMeasurement['fileCount'] > $categorizedFileCount) {
+                $otherCategory['fileCount'] += $storageMeasurement['fileCount'] - $categorizedFileCount;
+            }
+            if ($otherCategory['bytes'] > 0) {
+                $categories[self::MEDIA_OTHER] = $otherCategory;
             }
 
-            $categories = array_filter(
-                $categories,
-                static fn(array $category): bool => $category['bytes'] > 0,
-            );
+            /** @var array<string, array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}> $filteredCategories */
+            $filteredCategories = [];
+            foreach ($categories as $identifier => $category) {
+                if ($category['bytes'] > 0) {
+                    $filteredCategories[$identifier] = $category;
+                }
+            }
+            $categories = $filteredCategories;
             uasort(
                 $categories,
-                static fn(array $left, array $right): int => $right['bytes'] <=> $left['bytes'],
+                static fn (array $left, array $right): int => $right['bytes'] <=> $left['bytes'],
             );
 
-            $totalBytes = array_sum(array_map(static fn(array $category): int => $category['bytes'], $categories));
+            $totalBytes = array_sum(array_map(static fn (array $category): int => $category['bytes'], $categories));
             foreach ($categories as &$category) {
                 $category['formattedBytes'] = $this->formatBytes($category['bytes']);
                 $category['percentage'] = $totalBytes > 0 ? ($category['bytes'] / $totalBytes * 100) : 0.0;
@@ -651,7 +541,7 @@ final class SizeOverviewCalculator
             unset($category);
 
             $storages[] = [
-                'name' => $storage->getName() !== '' ? $storage->getName() : $this->translate('module.storageStatistics.unnamedStorage'),
+                'name' => '' !== $storage->getName() ? $storage->getName() : $this->translate('module.storageStatistics.unnamedStorage'),
                 'total' => $this->createByteValue($totalBytes),
                 'categories' => array_values($categories),
             ];
@@ -676,19 +566,14 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @param array{
-     *   storages: list<array{
-     *     name: string,
-     *     total: array{bytes: int, label: string},
-     *     categories: list<array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}>
-     *   }>
-     * } $mediaBreakdown
+     * @param array{storages: list<array{total: array{bytes: int, label: string}, ...}>, ...} $mediaBreakdown
+     *
      * @return array{bytes: int, label: string}
      */
     private function getMediaBreakdownTotal(array $mediaBreakdown): array
     {
         $bytes = array_sum(array_map(
-            static fn(array $storage): int => $storage['total']['bytes'],
+            static fn (array $storage): int => $storage['total']['bytes'],
             $mediaBreakdown['storages'],
         ));
 
@@ -717,7 +602,7 @@ final class SizeOverviewCalculator
             $databaseConnection = $this->getSingleDatabaseOverview((string)$connectionName);
             $connections[] = ['name' => (string)$connectionName, ...$databaseConnection];
 
-            if ($databaseConnection['available'] && $databaseConnection['bytes'] !== null) {
+            if ($databaseConnection['available'] && null !== $databaseConnection['bytes']) {
                 $totalBytes += $databaseConnection['bytes'];
                 $hasAvailableConnection = true;
             }
@@ -746,13 +631,13 @@ final class SizeOverviewCalculator
             $tables = $this->getDatabaseTablesOverview($connection);
             $availableTables = array_filter(
                 $tables,
-                static fn(array $table): bool => $table['available'] && $table['bytes'] !== null,
+                static fn (array $table): bool => $table['available'] && null !== $table['bytes'],
             );
 
-            if ($availableTables !== []) {
-                $bytes = array_sum(array_map(static fn(array $table): int => (int)$table['bytes'], $availableTables));
+            if ([] !== $availableTables) {
+                $bytes = array_sum(array_map(static fn (array $table): int => (int)$table['bytes'], $availableTables));
                 foreach ($tables as &$table) {
-                    if ($table['available'] && $table['bytes'] !== null) {
+                    if ($table['available'] && null !== $table['bytes']) {
                         $table['percentage'] = $bytes > 0 ? ((int)$table['bytes'] / $bytes * 100) : 0.0;
                         $table['sizeLabel'] = sprintf(
                             '%s (%s)',
@@ -766,7 +651,7 @@ final class SizeOverviewCalculator
                 return [...$this->createByteValue($bytes), 'available' => true, 'tables' => $tables];
             }
 
-            if ($tables !== []) {
+            if ([] !== $tables) {
                 return [...$this->createUnavailableValue(), 'available' => false, 'tables' => $tables];
             }
         } catch (\Throwable) {
@@ -794,30 +679,30 @@ final class SizeOverviewCalculator
                 'name' => $tableName,
                 'title' => $this->getTableTitle($tableName),
                 'iconIdentifier' => $iconIdentifier,
-                'usesFallbackIcon' => $iconIdentifier === 'actions-database',
+                'usesFallbackIcon' => 'actions-database' === $iconIdentifier,
                 'rowCount' => $rowCount,
-                'rowCountLabel' => $rowCount !== null ? (string)$rowCount : $this->translate(self::NOT_AVAILABLE),
+                'rowCountLabel' => null !== $rowCount ? (string)$rowCount : $this->translate(self::NOT_AVAILABLE),
                 'bytes' => $bytes,
-                'formattedBytes' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
-                'sizeLabel' => $bytes !== null ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
+                'formattedBytes' => null !== $bytes ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
+                'sizeLabel' => null !== $bytes ? $this->formatBytes($bytes) : $this->translate('database.tableSizeNotAvailable'),
                 'percentage' => 0.0,
-                'available' => $bytes !== null,
+                'available' => null !== $bytes,
             ];
         }
 
         $tables = array_values(array_filter(
             $tables,
-            static fn(array $table): bool => $table['rowCount'] !== 0 && $table['bytes'] !== 0,
+            static fn (array $table): bool => 0 !== $table['rowCount'] && 0 !== $table['bytes'],
         ));
 
         usort($tables, static function (array $left, array $right): int {
-            if ($left['bytes'] !== null && $right['bytes'] !== null) {
+            if (null !== $left['bytes'] && null !== $right['bytes']) {
                 return $right['bytes'] <=> $left['bytes'];
             }
-            if ($left['bytes'] !== null) {
+            if (null !== $left['bytes']) {
                 return -1;
             }
-            if ($right['bytes'] !== null) {
+            if (null !== $right['bytes']) {
                 return 1;
             }
 
@@ -829,6 +714,7 @@ final class SizeOverviewCalculator
 
     /**
      * @param list<string> $tableNames
+     *
      * @return array<string, array{bytes?: int, rowCount?: int}>
      */
     private function getDatabaseTableMetadata(Typo3Connection $connection, array $tableNames): array
@@ -837,7 +723,7 @@ final class SizeOverviewCalculator
 
         if ($platform instanceof AbstractMySQLPlatform) {
             $databaseName = (string)($connection->getParams()['dbname'] ?? '');
-            if ($databaseName === '') {
+            if ('' === $databaseName) {
                 return [];
             }
 
@@ -862,9 +748,9 @@ final class SizeOverviewCalculator
             foreach ($tableNames as $tableName) {
                 $metadata[$tableName] = [
                     'bytes' => (int)$connection->fetchOne(
-                    'SELECT pg_total_relation_size(?)',
-                    [$tableName],
-                    [Connection::PARAM_STR],
+                        'SELECT pg_total_relation_size(?)',
+                        [$tableName],
+                        [ParameterType::STRING],
                     ),
                 ];
             }
@@ -906,7 +792,7 @@ final class SizeOverviewCalculator
         }
 
         $json = file_get_contents($installedFile);
-        if (!is_string($json) || $json === '') {
+        if (!is_string($json) || '' === $json) {
             return [];
         }
 
@@ -928,12 +814,12 @@ final class SizeOverviewCalculator
             }
 
             $installPath = $package['install-path'] ?? null;
-            if (!is_string($installPath) || $installPath === '') {
+            if (!is_string($installPath) || '' === $installPath) {
                 continue;
             }
 
             $path = $this->normalizePath(dirname($installedFile) . '/' . $installPath);
-            if ($path === null || isset($seenPaths[$path])) {
+            if (null === $path || isset($seenPaths[$path])) {
                 continue;
             }
 
@@ -957,11 +843,11 @@ final class SizeOverviewCalculator
         $projectPath = Environment::getProjectPath();
         $vendorPath = $this->normalizePath($projectPath . '/vendor');
 
-        if ($type === 'typo3-cms-extension' && !str_starts_with($path, $vendorPath . '/')) {
+        if ('typo3-cms-extension' === $type && !str_starts_with($path, $vendorPath . '/')) {
             return 'extensions';
         }
 
-        if ($name === 'typo3/cms-core' || str_starts_with($name, 'typo3/cms-')) {
+        if ('typo3/cms-core' === $name || str_starts_with($name, 'typo3/cms-')) {
             return 'vendor';
         }
 
@@ -973,7 +859,7 @@ final class SizeOverviewCalculator
         $resolvedPath = $this->normalizePath($path) ?? $path;
 
         $systemMeasuredSize = $this->getPathSizeUsingSystemCommand($resolvedPath);
-        if ($systemMeasuredSize !== null) {
+        if (null !== $systemMeasuredSize) {
             return $systemMeasuredSize;
         }
 
@@ -1022,7 +908,7 @@ final class SizeOverviewCalculator
                 }
 
                 $output = trim($process->getOutput());
-                if ($output === '') {
+                if ('' === $output) {
                     continue;
                 }
 
@@ -1032,7 +918,7 @@ final class SizeOverviewCalculator
                 }
 
                 $value = (int)$firstColumn;
-                if (($command[1] ?? null) === '-sk') {
+                if ('-sk' === $command[1]) {
                     $value *= 1024;
                 }
 
@@ -1048,7 +934,7 @@ final class SizeOverviewCalculator
     private function normalizePath(string $path): ?string
     {
         $realPath = realpath($path);
-        if ($realPath === false) {
+        if (false === $realPath) {
             return null;
         }
 
@@ -1104,7 +990,7 @@ final class SizeOverviewCalculator
         $value = $this->createByteValue($bytes);
         $maximumBytes = $this->getConfiguredMaximumTotalStorageBytes();
 
-        if ($maximumBytes === null) {
+        if (null === $maximumBytes) {
             return [
                 ...$value,
                 'displayLabel' => $value['label'],
@@ -1124,8 +1010,8 @@ final class SizeOverviewCalculator
                 $this->formatBytes($maximumBytes),
                 number_format($percentage, 1, '.', ''),
             ),
-            'highlightClass' => $statusClass !== '' ? 'text-' . $statusClass : '',
-            'badgeClass' => $statusClass !== '' ? 'badge-' . $statusClass : '',
+            'highlightClass' => '' !== $statusClass ? 'text-' . $statusClass : '',
+            'badgeClass' => '' !== $statusClass ? 'badge-' . $statusClass : '',
         ];
     }
 
@@ -1138,8 +1024,9 @@ final class SizeOverviewCalculator
      *   connections: list<array{name: string, bytes: int|null, label: string, available: bool}>,
      *   total: array{bytes: int|null, label: string, available: bool}
      * } $database
-     * @param array<string, array{bytes: int|null, label: string}> $code
-     * @param array{bytes: int, label: string} $misc
+     * @param array{total: array{bytes: int, label: string}, ...} $code
+     * @param array{total: array{bytes: int, label: string}, ...} $misc
+     *
      * @return array{
      *   categories: list<array{
      *     identifier: string,
@@ -1162,7 +1049,7 @@ final class SizeOverviewCalculator
     private function createChartData(array $storages, array $database, array $code, array $misc, int $totalBytes): array
     {
         $maximumBytes = $this->getConfiguredMaximumTotalStorageBytes();
-        $visualReferenceBytes = $maximumBytes !== null
+        $visualReferenceBytes = null !== $maximumBytes
             ? max($maximumBytes, $totalBytes, 1)
             : max($totalBytes, 1);
         $categories = [
@@ -1183,32 +1070,32 @@ final class SizeOverviewCalculator
             $this->createChartCategory(
                 'code',
                 $this->translate('section.code'),
-                (int)($code['total']['bytes'] ?? 0),
+                $code['total']['bytes'],
                 'size-storage-color-code',
                 $visualReferenceBytes,
             ),
             $this->createChartCategory(
                 'misc',
                 $this->translate('section.misc'),
-                (int)($misc['total']['bytes'] ?? 0),
+                $misc['total']['bytes'],
                 'size-storage-color-misc',
                 $visualReferenceBytes,
             ),
         ];
 
-        $showAvailableSegment = $maximumBytes !== null && $totalBytes < $maximumBytes;
+        $showAvailableSegment = null !== $maximumBytes && $totalBytes < $maximumBytes;
         $availableBytes = $showAvailableSegment ? $maximumBytes - $totalBytes : null;
 
         return [
             'categories' => $categories,
             'maximumBytes' => $maximumBytes,
             'referenceBytes' => $visualReferenceBytes,
-            'totalPercentage' => $maximumBytes !== null && $maximumBytes > 0 ? ($totalBytes / $maximumBytes * 100) : 100.0,
+            'totalPercentage' => null !== $maximumBytes && $maximumBytes > 0 ? ($totalBytes / $maximumBytes * 100) : 100.0,
             'availableBytes' => $availableBytes,
-            'availablePercentage' => $availableBytes !== null ? ($availableBytes / $visualReferenceBytes * 100) : null,
-            'availableLabel' => $availableBytes !== null ? $this->formatBytes($availableBytes) : null,
+            'availablePercentage' => null !== $availableBytes ? ($availableBytes / $visualReferenceBytes * 100) : null,
+            'availableLabel' => null !== $availableBytes ? $this->formatBytes($availableBytes) : null,
             'showAvailableSegment' => $showAvailableSegment,
-            'isMaximumConfigured' => $maximumBytes !== null,
+            'isMaximumConfigured' => null !== $maximumBytes,
         ];
     }
 
@@ -1265,7 +1152,7 @@ final class SizeOverviewCalculator
         }
 
         $configuredValue = trim((string)($configuration['maximumTotalStorage'] ?? ''));
-        if ($configuredValue === '') {
+        if ('' === $configuredValue) {
             return null;
         }
 
@@ -1293,7 +1180,7 @@ final class SizeOverviewCalculator
         ];
 
         $power = $unitMap[$unit] ?? null;
-        if ($power === null) {
+        if (null === $power) {
             return null;
         }
 
@@ -1310,10 +1197,10 @@ final class SizeOverviewCalculator
 
         while ($value >= 1024 && isset($units[$unitIndex + 1])) {
             $value /= 1024;
-            $unitIndex++;
+            ++$unitIndex;
         }
 
-        $precision = $unitIndex === 0 ? 0 : 2;
+        $precision = 0 === $unitIndex ? 0 : 2;
         $formattedValue = number_format($value, $precision, '.', ' ');
 
         if ($precision > 0) {
@@ -1332,7 +1219,7 @@ final class SizeOverviewCalculator
 
     private function createSummaryLabel(string $label, ?int $bytes, int $totalBytes): string
     {
-        if ($bytes === null || $totalBytes <= 0) {
+        if (null === $bytes || $totalBytes <= 0) {
             return $label;
         }
 
@@ -1358,7 +1245,7 @@ final class SizeOverviewCalculator
             return $languageService->sL($label) ?: $label;
         }
 
-        if (preg_match('/^([a-z0-9_.-]+):([a-z0-9_.-]+)$/i', $label, $matches) === 1) {
+        if (1 === preg_match('/^([a-z0-9_.-]+):([a-z0-9_.-]+)$/i', $label, $matches)) {
             return (string)($languageService->translate($matches[2], $matches[1]) ?? $label);
         }
 
@@ -1411,7 +1298,7 @@ final class SizeOverviewCalculator
 
     private function isDocumentMimeType(string $mimeType): bool
     {
-        if ($mimeType === '') {
+        if ('' === $mimeType) {
             return false;
         }
 
@@ -1449,7 +1336,7 @@ final class SizeOverviewCalculator
 
     private function isArchiveMimeType(string $mimeType): bool
     {
-        if ($mimeType === '') {
+        if ('' === $mimeType) {
             return false;
         }
 
@@ -1475,15 +1362,16 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{bytes: int, fileCount: int}
+     * @return array<int, array{bytes: int, fileCount: int}>
      */
     private function getProcessedImagesMeasurementByStorage(): array
     {
+        /** @var array<int, array{bytes: int, fileCount: int}> $measurements */
         $measurements = [];
 
         foreach ($this->storageRepository->findAll() as $storage) {
             $processingPaths = $this->getLocalProcessingFolderPaths($storage);
-            if ($processingPaths === []) {
+            if ([] === $processingPaths) {
                 continue;
             }
 
@@ -1504,7 +1392,7 @@ final class SizeOverviewCalculator
      */
     private function getLocalProcessingFolderPaths(ResourceStorage $storage): array
     {
-        if ($storage->getDriverType() !== 'Local') {
+        if ('Local' !== $storage->getDriverType()) {
             return [];
         }
 
@@ -1512,7 +1400,7 @@ final class SizeOverviewCalculator
             $paths = [];
             foreach ($storage->getProcessingFolders() as $processingFolder) {
                 $resolvedPath = $this->resolveLocalFolderPath($processingFolder);
-                if ($resolvedPath !== null) {
+                if (null !== $resolvedPath) {
                     $paths[] = $resolvedPath;
                 }
             }
@@ -1526,18 +1414,14 @@ final class SizeOverviewCalculator
     private function resolveLocalFolderPath(Folder $folder): ?string
     {
         $identifier = $folder->getIdentifier();
-        if ($identifier === '') {
-            return null;
-        }
-
         $storageBasePath = $this->resolveLocalStorageBasePath($folder->getStorage());
-        if ($storageBasePath === null) {
+        if (null === $storageBasePath) {
             return null;
         }
 
         $resolvedPath = $this->normalizePath($storageBasePath . '/' . ltrim($identifier, '/'));
 
-        return $resolvedPath !== null && is_dir($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
+        return null !== $resolvedPath && is_dir($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
     }
 
     /**
@@ -1547,19 +1431,27 @@ final class SizeOverviewCalculator
     {
         $categories = [];
         foreach ($this->getMediaCategoryOrder() as $identifier) {
-            $categories[$identifier] = [
-                'identifier' => $identifier,
-                'iconIdentifier' => $this->getMediaCategoryIconIdentifier($identifier),
-                'label' => $this->translate('media.' . $identifier),
-                'bytes' => 0,
-                'formattedBytes' => $this->formatBytes(0),
-                'fileCount' => 0,
-                'sizeLabel' => $this->formatBytes(0) . ' (0.0%)',
-                'percentage' => 0.0,
-            ];
+            $categories[$identifier] = $this->createMediaCategoryValue($identifier);
         }
 
         return $categories;
+    }
+
+    /**
+     * @return array{identifier: string, iconIdentifier: string, label: string, bytes: int, formattedBytes: string, fileCount: int, sizeLabel: string, percentage: float}
+     */
+    private function createMediaCategoryValue(string $identifier): array
+    {
+        return [
+            'identifier' => $identifier,
+            'iconIdentifier' => $this->getMediaCategoryIconIdentifier($identifier),
+            'label' => $this->translate('media.' . $identifier),
+            'bytes' => 0,
+            'formattedBytes' => $this->formatBytes(0),
+            'fileCount' => 0,
+            'sizeLabel' => $this->formatBytes(0) . ' (0.0%)',
+            'percentage' => 0.0,
+        ];
     }
 
     private function getMediaCategoryIconIdentifier(string $identifier): string
@@ -1584,11 +1476,11 @@ final class SizeOverviewCalculator
         }
 
         $typeIconClasses = $ctrl['typeicon_classes'] ?? null;
-        if (is_array($typeIconClasses) && is_string($typeIconClasses['default'] ?? null) && $typeIconClasses['default'] !== '') {
+        if (is_array($typeIconClasses) && is_string($typeIconClasses['default'] ?? null) && '' !== $typeIconClasses['default']) {
             return $typeIconClasses['default'];
         }
 
-        if (is_string($ctrl['iconfile'] ?? null) && $ctrl['iconfile'] !== '') {
+        if (is_string($ctrl['iconfile'] ?? null) && '' !== $ctrl['iconfile']) {
             return 'tcarecords-' . $tableName . '-default';
         }
 
@@ -1603,13 +1495,13 @@ final class SizeOverviewCalculator
         }
 
         $title = $ctrl['title'] ?? null;
-        if (!is_string($title) || $title === '') {
+        if (!is_string($title) || '' === $title) {
             return null;
         }
 
         $resolvedTitle = trim($this->resolveLabel($title));
 
-        if ($resolvedTitle === '' || $resolvedTitle === $tableName) {
+        if ('' === $resolvedTitle || $resolvedTitle === $tableName) {
             return null;
         }
 

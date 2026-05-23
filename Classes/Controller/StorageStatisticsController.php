@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace T3\Size\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use T3\Size\Service\SizeOverviewSnapshotStorage;
 use T3\Size\Service\SizeOverviewProvider;
 use T3\Size\Service\SizeOverviewRefreshService;
+use T3\Size\Service\SizeOverviewSnapshotStorage;
 use T3\Size\Service\StorageUsageNotificationRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -34,7 +34,8 @@ final readonly class StorageStatisticsController
         private UriBuilder $uriBuilder,
         private FlashMessageService $flashMessageService,
         private FormProtectionFactory $formProtectionFactory,
-    ) {}
+    ) {
+    }
 
     public function overviewAction(ServerRequestInterface $request): ResponseInterface
     {
