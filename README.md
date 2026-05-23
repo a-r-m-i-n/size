@@ -7,11 +7,91 @@ The extension provides:
 - a backend toolbar item with storage totals
 - a dashboard widget
 - an extended backend module with a visual storage overview
+- a backend-module table with the 10 largest FAL files, including path and usage count
 - a persisted storage snapshot, so regular backend page loads do not trigger an expensive recalculation
 - a PSR-14 event before the snapshot is stored, so listeners can adjust the calculated overview
 - a manual refresh action in the backend module
 - a CLI command for Scheduler or manual execution
 - optional warning/full email notifications when a configured storage limit is exceeded
+
+## PSR-14 Events
+
+The extension exposes several PSR-14 events for adjusting collected filesystem paths before size calculation continues.
+
+Listeners can read the current payload and replace it completely by assigning a new array to the public `paths` property.
+
+### `T3\Size\Event\CodePathsCollectedEvent`
+
+Dispatched after code paths from Composer and classic extensions have been collected and before filesystem metrics are calculated.
+
+`$event->paths` contains:
+
+- `list<array{group: string, path: string}>`
+
+The `group` value is one of `vendor`, `extensions`, or `dependencies`.
+
+### `T3\Size\Event\AdditionalMiscPathsCollectedEvent`
+
+Dispatched after configured additional `Misc` folders have been resolved and before their metrics are calculated.
+
+`$event->paths` contains:
+
+- `list<string>` with filesystem paths
+
+Additional context:
+
+- `$event->projectPath` contains the normalized TYPO3 project path
+
+### `T3\Size\Event\StoragePathsCollectedEvent`
+
+Dispatched for each FAL storage after local base paths have been collected and before storage metrics are calculated.
+
+`$event->paths` contains:
+
+- `list<string>` with filesystem paths
+
+Additional context:
+
+- `$event->storage` contains the current `ResourceStorage`
+
+### `T3\Size\Event\StorageProcessingPathsCollectedEvent`
+
+Dispatched for each FAL storage after local processing / processed-image paths have been collected and before processed-image metrics are calculated.
+
+`$event->paths` contains:
+
+- `list<string>` with filesystem paths
+
+Additional context:
+
+- `$event->storage` contains the current `ResourceStorage`
+
+### Listener Example
+
+The following listener replaces the collected additional `Misc` paths completely:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Vendor\SitePackage\EventListener;
+
+use T3\Size\Event\AdditionalMiscPathsCollectedEvent;
+
+final class ReplaceAdditionalMiscPathsListener
+{
+    public function __invoke(AdditionalMiscPathsCollectedEvent $event): void
+    {
+        $event->paths = [
+            $event->projectPath . '/packages',
+            $event->projectPath . '/Build/cache',
+        ];
+    }
+}
+```
+
+The existing `T3\Size\Event\BeforeSizeOverviewSnapshotStoredEvent` remains available and is still dispatched immediately before the calculated snapshot is stored.
 
 ## How It Works
 

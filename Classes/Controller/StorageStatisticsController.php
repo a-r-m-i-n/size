@@ -41,9 +41,10 @@ final readonly class StorageStatisticsController
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
         $moduleTemplate->setTitle($this->translate('module.storageStatistics.title'));
         $context = $this->sizeOverviewProvider->getOverviewContext();
+        $overview = $this->enrichOverviewForBackendModule($context['overview']);
 
         $moduleTemplate->assignMultiple([
-            ...$context['overview'],
+            ...$overview,
             ...$context,
             'refreshFormId' => 'size-overview-refresh-form',
             'refreshActionUrl' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics.refresh'),
@@ -160,5 +161,49 @@ final readonly class StorageStatisticsController
     private function translate(string $key): string
     {
         return $this->backendLocalizationHelper->translate($key);
+    }
+
+    /**
+     * @param array<string, mixed> $overview
+     *
+     * @return array<string, mixed>
+     */
+    private function enrichOverviewForBackendModule(array $overview): array
+    {
+        $largestFalFiles = $overview['largestFalFiles']['items'] ?? null;
+        if (!is_array($largestFalFiles)) {
+            return $overview;
+        }
+
+        $overview['largestFalFiles']['items'] = array_map(function (mixed $item): mixed {
+            if (!is_array($item)) {
+                return $item;
+            }
+
+            $item['link'] = $this->buildSysFileEditLink((int)($item['sysFileUid'] ?? 0));
+
+            return $item;
+        }, $largestFalFiles);
+
+        return $overview;
+    }
+
+    private function buildSysFileEditLink(int $sysFileUid): ?string
+    {
+        if ($sysFileUid <= 0) {
+            return null;
+        }
+
+        try {
+            return (string)$this->uriBuilder->buildUriFromRoute('record_edit', [
+                'edit' => [
+                    'sys_file' => [
+                        $sysFileUid => 'edit',
+                    ],
+                ],
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

@@ -122,6 +122,9 @@ final class SizeOverviewProvider
                 'storages' => [],
             ],
             'mediaBreakdownTotal' => $this->createEmptyValue($notAvailable),
+            'largestFalFiles' => [
+                'items' => [],
+            ],
             'database' => [
                 'connections' => [],
                 'total' => [

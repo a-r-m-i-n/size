@@ -51,6 +51,9 @@
             <trans-unit id="section.mediaBreakdown">
                 <source>Media: File type breakdown by file storages</source>
             </trans-unit>
+            <trans-unit id="section.largestFalFiles">
+                <source>Media: Top 10 largest FAL files</source>
+            </trans-unit>
             <trans-unit id="database.total">
                 <source>Total</source>
             </trans-unit>
@@ -75,8 +78,17 @@
             <trans-unit id="media.other">
                 <source>Other</source>
             </trans-unit>
+            <trans-unit id="table.file">
+                <source>File</source>
+            </trans-unit>
             <trans-unit id="table.files">
                 <source>Files</source>
+            </trans-unit>
+            <trans-unit id="table.storage">
+                <source>Storage</source>
+            </trans-unit>
+            <trans-unit id="table.usages">
+                <source>Usages</source>
             </trans-unit>
             <trans-unit id="table.dirs">
                 <source>Dirs</source>

@@ -14,6 +14,8 @@
 />
 
 <div class="module-body size-storage-module">
+    <f:flashMessages />
+
     <f:if condition="{isAdminUser}">
         <form id="{refreshFormId}" action="{refreshActionUrl}" method="post">
             <input type="hidden" name="formToken" value="{refreshFormToken}" />
@@ -648,6 +650,118 @@
             </table>
         </div>
     </section>
+
+        <section class="size-storage-detail-card size-storage-full-width-card size-storage-neutral-card">
+            <h2 class="size-storage-detail-heading">
+                <span class="size-storage-detail-icon size-storage-detail-icon-neutral me-1">
+                    <core:icon identifier="actions-file" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.largestFalFiles" extensionName="size" /></span>
+            </h2>
+            <f:if condition="{largestFalFiles.items -> f:count()} > 0">
+                <f:then>
+                    <div class="table-responsive">
+                        <table
+                            class="table table-sm size-storage-table size-storage-table-fal"
+                            data-sortable-table="1"
+                        >
+                            <thead>
+                                <tr>
+                                    <th scope="col" aria-sort="none">
+                                        <button
+                                            type="button"
+                                            class="size-storage-sort-button"
+                                            data-sort-key="label"
+                                            data-sort-type="text"
+                                            title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                            aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                        >
+                                            <span><f:translate key="table.file" extensionName="size" /></span>
+                                        </button>
+                                    </th>
+                                    <th scope="col" aria-sort="none">
+                                        <button
+                                            type="button"
+                                            class="size-storage-sort-button"
+                                            data-sort-key="storageName"
+                                            data-sort-type="text"
+                                            title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                            aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                        >
+                                            <span><f:translate key="table.storage" extensionName="size" /></span>
+                                        </button>
+                                    </th>
+                                    <th scope="col" class="text-end" aria-sort="none">
+                                        <button
+                                            type="button"
+                                            class="size-storage-sort-button size-storage-sort-button-end"
+                                            data-sort-key="referenceCount"
+                                            data-sort-type="number"
+                                            title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                            aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                        >
+                                            <span><f:translate key="table.usages" extensionName="size" /></span>
+                                        </button>
+                                    </th>
+                                    <th scope="col" class="text-end" aria-sort="none">
+                                        <button
+                                            type="button"
+                                            class="size-storage-sort-button size-storage-sort-button-end"
+                                            data-sort-key="bytes"
+                                            data-sort-type="number"
+                                            title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                            aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                        >
+                                            <span><f:translate key="table.size" extensionName="size" /></span>
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <f:for each="{largestFalFiles.items}" as="falFile">
+                                    <tr
+                                        class="size-storage-table-row"
+                                        data-label="{falFile.name}"
+                                        data-storage-name="{falFile.storageName}"
+                                        data-reference-count="{falFile.referenceCount}"
+                                        data-bytes="{falFile.bytes}"
+                                        style="--size-storage-row-fill: {falFile.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
+                                    >
+                                        <td>
+                                            <span class="size-storage-table-cell-content size-storage-table-label">
+                                                <span class="size-storage-table-icon size-storage-detail-icon-neutral">
+                                                    <core:icon identifier="actions-file" alternativeMarkupIdentifier="inline" size="small" />
+                                                </span>
+                                                <span>
+                                                    <f:if condition="{falFile.link}">
+                                                        <f:then>
+                                                            <a href="{falFile.link}" class="size-storage-table-link">{falFile.name}</a>
+                                                        </f:then>
+                                                        <f:else>{falFile.name}</f:else>
+                                                    </f:if>
+                                                </span>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="size-storage-table-cell-content">{falFile.storageName}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="size-storage-table-cell-content">{falFile.referenceCountLabel}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="size-storage-table-cell-content">{falFile.sizeLabel}</span>
+                                        </td>
+                                    </tr>
+                                </f:for>
+                            </tbody>
+                        </table>
+                    </div>
+                </f:then>
+                <f:else>
+                    <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+                </f:else>
+            </f:if>
+        </section>
 
         <f:if condition="{isAdminUser}">
             <section class="size-storage-detail-card size-storage-full-width-card size-storage-reset-card">

@@ -8,7 +8,12 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Process\Process;
+use T3\Size\Event\AdditionalMiscPathsCollectedEvent;
+use T3\Size\Event\CodePathsCollectedEvent;
+use T3\Size\Event\StoragePathsCollectedEvent;
+use T3\Size\Event\StorageProcessingPathsCollectedEvent;
 use T3\Size\Localization\BackendLocalizationHelper;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
@@ -51,6 +56,7 @@ final class SizeOverviewCalculator
         private readonly BackendLocalizationHelper $backendLocalizationHelper,
         private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly ByteFormatter $byteFormatter,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -68,6 +74,7 @@ final class SizeOverviewCalculator
         $storages = $this->getStorageOverview();
         $mediaBreakdown = $this->getMediaBreakdown();
         $mediaBreakdownTotal = $this->getMediaBreakdownTotal($mediaBreakdown);
+        $largestFalFiles = $this->getLargestFalFilesOverview();
         $database = $this->getDatabaseOverview();
         $totalBytes = (
             $code['total']['bytes']
@@ -89,6 +96,7 @@ final class SizeOverviewCalculator
             'storages' => $storages,
             'mediaBreakdown' => $mediaBreakdown,
             'mediaBreakdownTotal' => $mediaBreakdownTotal,
+            'largestFalFiles' => $largestFalFiles,
             'database' => $database,
             'total' => $total,
         ];
@@ -115,7 +123,7 @@ final class SizeOverviewCalculator
         ];
         $countedPaths = [];
 
-        foreach (array_merge($this->getComposerInstallPaths(), $this->getClassicExtensionPaths()) as $package) {
+        foreach ($this->getCollectedCodePaths() as $package) {
             if (isset($countedPaths[$package['path']])) {
                 continue;
             }
@@ -242,13 +250,11 @@ final class SizeOverviewCalculator
 
         foreach ($this->getConfiguredAdditionalMiscFolders($normalizedProjectPath) as $additionalFolder) {
             $rows[] = [
-                'identifier' => 'additional-' . md5($additionalFolder['label']),
+                'identifier' => 'additional-' . md5($additionalFolder['path']),
                 'labelKey' => null,
-                'label' => $additionalFolder['label'],
-                'bytes' => $additionalFolder['bytes'],
-                'fileCount' => $additionalFolder['fileCount'],
-                'dirCount' => $additionalFolder['dirCount'],
-                'countedPath' => $additionalFolder['countedPath'],
+                'label' => $this->createAdditionalMiscPathLabel($additionalFolder['path'], $normalizedProjectPath),
+                ...$this->createMiscRowMetrics($additionalFolder['path']),
+                'countedPath' => $this->normalizePath($additionalFolder['path']),
             ];
         }
 
@@ -288,49 +294,50 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return list<array{label: string, bytes: int, fileCount: int, dirCount: int, countedPath: string|null}>
+     * @return list<array{path: string}>
      */
     private function getConfiguredAdditionalMiscFolders(string $normalizedProjectPath): array
     {
+        $paths = [];
+
         try {
             $configuration = $this->extensionConfiguration->get('size');
         } catch (\Throwable) {
-            return [];
+            $event = new AdditionalMiscPathsCollectedEvent([], $normalizedProjectPath);
+            $this->eventDispatcher->dispatch($event);
+
+            return array_map(static fn (string $path): array => ['path' => $path], $event->paths);
         }
 
         if (!is_array($configuration)) {
-            return [];
+            $event = new AdditionalMiscPathsCollectedEvent([], $normalizedProjectPath);
+            $this->eventDispatcher->dispatch($event);
+
+            return array_map(static fn (string $path): array => ['path' => $path], $event->paths);
         }
 
         $configuredValue = (string)($configuration['additionalMiscFolders'] ?? '');
-        if ('' === trim($configuredValue)) {
-            return [];
+        if ('' !== trim($configuredValue)) {
+            foreach (preg_split('/[\r\n,]+/', $configuredValue) ?: [] as $configuredFolder) {
+                $relativePath = $this->normalizeConfiguredProjectRelativePath($configuredFolder);
+                if (null === $relativePath) {
+                    continue;
+                }
+
+                $absolutePath = $normalizedProjectPath . '/' . $relativePath;
+                $resolvedPath = $this->normalizePath($absolutePath);
+                if (null !== $resolvedPath && !$this->isPathWithinBasePath($resolvedPath, $normalizedProjectPath)) {
+                    continue;
+                }
+
+                $paths[] = $absolutePath;
+            }
         }
 
-        $folders = [];
-        foreach (preg_split('/[\r\n,]+/', $configuredValue) ?: [] as $configuredFolder) {
-            $relativePath = $this->normalizeConfiguredProjectRelativePath($configuredFolder);
-            if (null === $relativePath) {
-                continue;
-            }
+        $event = new AdditionalMiscPathsCollectedEvent($paths, $normalizedProjectPath);
+        $this->eventDispatcher->dispatch($event);
 
-            $absolutePath = $normalizedProjectPath . '/' . $relativePath;
-            $resolvedPath = $this->normalizePath($absolutePath);
-            if (null !== $resolvedPath && !$this->isPathWithinBasePath($resolvedPath, $normalizedProjectPath)) {
-                continue;
-            }
-            $metrics = $this->getFilesystemMetrics($absolutePath);
-
-            $folders[] = [
-                'label' => $relativePath,
-                'bytes' => $metrics['bytes'],
-                'fileCount' => $metrics['fileCount'],
-                'dirCount' => $metrics['dirCount'],
-                'countedPath' => $resolvedPath,
-            ];
-        }
-
-        return $folders;
+        return array_map(static fn (string $path): array => ['path' => $path], $event->paths);
     }
 
     /**
@@ -389,7 +396,7 @@ final class SizeOverviewCalculator
                 return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'dirCount' => null, 'paths' => []];
             }
 
-            $paths = $this->getStorageMeasuredPaths($storage);
+            $paths = $this->getNonOverlappingPaths($this->getStorageMeasuredPaths($storage));
             if ([] === $paths) {
                 return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'dirCount' => null, 'paths' => []];
             }
@@ -439,11 +446,12 @@ final class SizeOverviewCalculator
     private function getStorageMeasuredPaths(ResourceStorage $storage): array
     {
         $basePath = $this->resolveLocalStorageBasePath($storage);
-        if (null === $basePath) {
-            return [];
-        }
+        $paths = null !== $basePath ? [$basePath] : [];
 
-        return [$basePath];
+        $event = new StoragePathsCollectedEvent($paths, $storage);
+        $this->eventDispatcher->dispatch($event);
+
+        return $event->paths;
     }
 
     private function getFilesystemStorageSize(string $basePath): int
@@ -671,6 +679,114 @@ final class SizeOverviewCalculator
                 ->groupBy('storage', 'identifier')
                 ->getSQL(),
         );
+    }
+
+    /**
+     * @return array{
+     *   items: list<array{
+     *     sysFileUid: int,
+     *     name: string,
+     *     identifier: string,
+     *     storageUid: int,
+     *     storageName: string,
+     *     bytes: int,
+     *     formattedBytes: string,
+     *     sizeLabel: string,
+     *     referenceCount: int,
+     *     referenceCountLabel: string,
+     *     link: string|null
+     *   }>
+     * }
+     */
+    private function getLargestFalFilesOverview(): array
+    {
+        try {
+            $storageNames = $this->getStorageNamesByUid();
+            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file');
+            $items = $queryBuilder
+                ->select(
+                    'deduplicated.uid',
+                    'deduplicated.storage',
+                    'deduplicated.identifier',
+                    'deduplicated.name',
+                    'deduplicated.size',
+                )
+                ->addSelectLiteral('COUNT(file_reference.uid) AS reference_count')
+                ->from('sys_file', 'deduplicated')
+                ->leftJoin(
+                    'deduplicated',
+                    'sys_file_reference',
+                    'file_reference',
+                    $queryBuilder->expr()->and(
+                        $queryBuilder->expr()->eq('file_reference.uid_local', 'deduplicated.uid'),
+                        $queryBuilder->expr()->eq('file_reference.deleted', '0'),
+                    ),
+                )
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'deduplicated.uid',
+                        $this->buildLatestNonMissingSysFileUidSubquery(),
+                    ),
+                )
+                ->groupBy(
+                    'deduplicated.uid',
+                    'deduplicated.storage',
+                    'deduplicated.identifier',
+                    'deduplicated.name',
+                    'deduplicated.size',
+                )
+                ->orderBy('deduplicated.size', 'DESC')
+                ->addOrderBy('deduplicated.uid', 'DESC')
+                ->setMaxResults(10)
+                ->executeQuery()
+                ->fetchAllAssociative();
+        } catch (\Throwable) {
+            return ['items' => []];
+        }
+
+        $largestFileBytes = 0;
+        foreach ($items as $item) {
+            $largestFileBytes = max($largestFileBytes, max(0, (int)($item['size'] ?? 0)));
+        }
+
+        return [
+            'items' => array_map(function (array $item) use ($largestFileBytes, $storageNames): array {
+                $sysFileUid = max(0, (int)($item['uid'] ?? 0));
+                $storageUid = max(0, (int)($item['storage'] ?? 0));
+                $bytes = max(0, (int)($item['size'] ?? 0));
+                $referenceCount = max(0, (int)($item['reference_count'] ?? 0));
+
+                return [
+                    'sysFileUid' => $sysFileUid,
+                    'name' => (string)($item['name'] ?? ''),
+                    'identifier' => (string)($item['identifier'] ?? ''),
+                    'storageUid' => $storageUid,
+                    'storageName' => $storageNames[$storageUid] ?? $this->translate('module.storageStatistics.unnamedStorage'),
+                    'bytes' => $bytes,
+                    'formattedBytes' => $this->formatBytes($bytes),
+                    'sizeLabel' => $this->formatBytes($bytes),
+                    'referenceCount' => $referenceCount,
+                    'referenceCountLabel' => (string)$referenceCount,
+                    'link' => null,
+                    'percentage' => $largestFileBytes > 0 ? ($bytes / $largestFileBytes * 100) : 0.0,
+                ];
+            }, $items),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getStorageNamesByUid(): array
+    {
+        $storageNames = [];
+        foreach ($this->storageRepository->findAll() as $storage) {
+            $storageNames[$storage->getUid()] = '' !== $storage->getName()
+                ? $storage->getName()
+                : $this->translate('module.storageStatistics.unnamedStorage');
+        }
+
+        return $storageNames;
     }
 
     /**
@@ -950,6 +1066,17 @@ final class SizeOverviewCalculator
         }
 
         return $result;
+    }
+
+    /**
+     * @return list<array{group: string, path: string}>
+     */
+    private function getCollectedCodePaths(): array
+    {
+        $event = new CodePathsCollectedEvent(array_merge($this->getComposerInstallPaths(), $this->getClassicExtensionPaths()));
+        $this->eventDispatcher->dispatch($event);
+
+        return $event->paths;
     }
 
     /**
@@ -1595,23 +1722,29 @@ final class SizeOverviewCalculator
      */
     private function getLocalProcessingFolderPaths(ResourceStorage $storage): array
     {
+        $paths = [];
+
         if ('Local' !== $storage->getDriverType()) {
-            return [];
+            $event = new StorageProcessingPathsCollectedEvent($paths, $storage);
+            $this->eventDispatcher->dispatch($event);
+
+            return $event->paths;
         }
 
         try {
-            $paths = [];
             foreach ($storage->getProcessingFolders() as $processingFolder) {
                 $resolvedPath = $this->resolveLocalFolderPath($processingFolder);
                 if (null !== $resolvedPath) {
                     $paths[] = $resolvedPath;
                 }
             }
-
-            return $paths;
         } catch (\Throwable) {
-            return [];
         }
+
+        $event = new StorageProcessingPathsCollectedEvent($paths, $storage);
+        $this->eventDispatcher->dispatch($event);
+
+        return $event->paths;
     }
 
     private function resolveLocalFolderPath(Folder $folder): ?string
@@ -1625,6 +1758,16 @@ final class SizeOverviewCalculator
         $resolvedPath = $this->normalizePath($storageBasePath . '/' . ltrim($identifier, '/'));
 
         return null !== $resolvedPath && is_dir($resolvedPath) && is_readable($resolvedPath) ? $resolvedPath : null;
+    }
+
+    private function createAdditionalMiscPathLabel(string $path, string $normalizedProjectPath): string
+    {
+        $normalizedPath = $this->normalizePath($path);
+        if (null !== $normalizedPath && $this->isPathWithinBasePath($normalizedPath, $normalizedProjectPath)) {
+            return ltrim(substr($normalizedPath, strlen($normalizedProjectPath)), '/') ?: '.';
+        }
+
+        return ltrim(str_replace('\\', '/', $path), '/') ?: $path;
     }
 
     /**

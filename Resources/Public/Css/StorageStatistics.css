@@ -21,6 +21,7 @@
     --size-storage-shadow: var(--typo3-component-box-shadow, 0 18px 40px rgba(26, 39, 56, 0.06));
     --size-storage-row-base: var(--typo3-surface-container-low, #eef1f5);
     --size-storage-row-base-odd: var(--typo3-surface-container-base, #e2e7ee);
+    --size-storage-neutral: #68727d;
 }
 
 .size-storage-layout {
@@ -376,6 +377,10 @@
     color: var(--size-storage-misc);
 }
 
+.size-storage-detail-icon-neutral {
+    color: var(--size-storage-neutral);
+}
+
 .size-storage-detail-total {
     margin-bottom: 1rem;
     font-weight: 700;
@@ -593,6 +598,42 @@
 .size-storage-table-misc {
     --size-storage-row-fill-color: rgba(180, 85, 79, 0.22);
     --size-storage-row-fill-color-odd: rgba(180, 85, 79, 0.32);
+}
+
+.size-storage-neutral-card {
+    background: linear-gradient(180deg, var(--typo3-surface-container-low, #f1f3f5) 0%, var(--typo3-surface-container-base, #e5e9ee) 100%);
+}
+
+.size-storage-table-fal {
+    --size-storage-row-fill-color: rgba(104, 114, 125, 0.18);
+    --size-storage-row-fill-color-odd: rgba(104, 114, 125, 0.28);
+}
+
+.size-storage-detail-card .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.size-storage-table-fal th:nth-child(2),
+.size-storage-table-fal td:nth-child(2) {
+    min-width: 12rem;
+}
+
+.size-storage-table-fal th:nth-child(3),
+.size-storage-table-fal td:nth-child(3) {
+    width: 7rem;
+    white-space: nowrap;
+}
+
+.size-storage-table-link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.size-storage-table-link:hover,
+.size-storage-table-link:focus-visible {
+    color: inherit;
 }
 
 .size-storage-table-icon-muted {
