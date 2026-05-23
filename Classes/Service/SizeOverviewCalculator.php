@@ -9,11 +9,11 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Symfony\Component\Process\Process;
+use T3\Size\Localization\BackendLocalizationHelper;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection as Typo3Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
@@ -48,7 +48,7 @@ final class SizeOverviewCalculator
     public function __construct(
         private readonly StorageRepository $storageRepository,
         private readonly ConnectionPool $connectionPool,
-        private readonly LanguageServiceFactory $languageServiceFactory,
+        private readonly BackendLocalizationHelper $backendLocalizationHelper,
         private readonly ExtensionConfiguration $extensionConfiguration,
     ) {
     }
@@ -1232,24 +1232,12 @@ final class SizeOverviewCalculator
 
     private function translate(string $key): string
     {
-        return $this->languageServiceFactory
-            ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
-            ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
+        return $this->backendLocalizationHelper->translate($key);
     }
 
     private function resolveLabel(string $label): string
     {
-        $languageService = $this->languageServiceFactory->createFromUserPreferences($GLOBALS['BE_USER'] ?? null);
-
-        if (str_starts_with($label, 'LLL:')) {
-            return $languageService->sL($label) ?: $label;
-        }
-
-        if (1 === preg_match('/^([a-z0-9_.-]+):([a-z0-9_.-]+)$/i', $label, $matches)) {
-            return (string)($languageService->translate($matches[2], $matches[1]) ?? $label);
-        }
-
-        return $label;
+        return $this->backendLocalizationHelper->resolveLabel($label);
     }
 
     /**

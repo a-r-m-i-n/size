@@ -6,6 +6,7 @@ namespace T3\Size\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use T3\Size\Localization\BackendLocalizationHelper;
 use T3\Size\Service\SizeOverviewProvider;
 use T3\Size\Service\SizeOverviewRefreshService;
 use T3\Size\Service\SizeOverviewSnapshotStorage;
@@ -13,10 +14,8 @@ use T3\Size\Service\StorageUsageNotificationRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\RedirectResponse;
-use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
@@ -27,7 +26,7 @@ final readonly class StorageStatisticsController
     public function __construct(
         private ModuleTemplateFactory $moduleTemplateFactory,
         private SizeOverviewProvider $sizeOverviewProvider,
-        private LanguageServiceFactory $languageServiceFactory,
+        private BackendLocalizationHelper $backendLocalizationHelper,
         private SizeOverviewRefreshService $refreshService,
         private SizeOverviewSnapshotStorage $snapshotStorage,
         private StorageUsageNotificationRegistry $notificationRegistry,
@@ -153,15 +152,6 @@ final readonly class StorageStatisticsController
 
     private function translate(string $key): string
     {
-        return $this->languageServiceFactory
-            ->createFromUserPreferences($this->getBackendUser())
-            ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
-    }
-
-    private function getBackendUser(): ?BackendUserAuthentication
-    {
-        $backendUser = $GLOBALS['BE_USER'] ?? null;
-
-        return $backendUser instanceof BackendUserAuthentication ? $backendUser : null;
+        return $this->backendLocalizationHelper->translate($key);
     }
 }

@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 namespace T3\Size\Service;
 
+use T3\Size\Localization\BackendLocalizationHelper;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 
 final class SizeOverviewProvider
 {
@@ -22,7 +22,7 @@ final class SizeOverviewProvider
         private readonly SizeOverviewSnapshotStorage $snapshotStorage,
         private readonly SizeOverviewRefreshService $refreshService,
         private readonly StorageUsageNotificationRegistry $notificationRegistry,
-        private readonly LanguageServiceFactory $languageServiceFactory,
+        private readonly BackendLocalizationHelper $backendLocalizationHelper,
     ) {
     }
 
@@ -74,7 +74,9 @@ final class SizeOverviewProvider
 
     public function isAdminUser(): bool
     {
-        return $this->getBackendUser()?->isAdmin() ?? false;
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+
+        return $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin();
     }
 
     /**
@@ -243,15 +245,6 @@ final class SizeOverviewProvider
 
     private function translate(string $key): string
     {
-        return $this->languageServiceFactory
-            ->createFromUserPreferences($this->getBackendUser())
-            ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
-    }
-
-    private function getBackendUser(): ?BackendUserAuthentication
-    {
-        $backendUser = $GLOBALS['BE_USER'] ?? null;
-
-        return $backendUser instanceof BackendUserAuthentication ? $backendUser : null;
+        return $this->backendLocalizationHelper->translate($key);
     }
 }
