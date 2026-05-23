@@ -48,6 +48,8 @@ The backend module shows:
 
 The `Misc` category includes files in the project root as well as the `config`, `var`, and `public/typo3temp` directories.
 
+Additional project folders can be configured and are then shown as separate rows in the `Misc` breakdown. Their sizes are included in the `Misc` total and therefore also in the chart and overall `Total`.
+
 ## CLI / Scheduler
 
 The extension provides the Symfony command:
@@ -93,5 +95,17 @@ Optional comma- or line-separated email addresses that receive a full mail when 
 Each full notification has a separate cooldown of 7 days.
 
 If an email address is configured in both recipient lists and the usage is at or above `100%`, it only receives the full notification.
+
+### `additionalMiscFolders`
+
+Optional comma- or line-separated relative project paths that should be measured as additional `Misc` rows.
+
+Examples:
+
+- `packages`
+- `public/uploads`
+- `Build/cache`
+
+Configured paths must point into the TYPO3 project directory. Existing paths are normalized via `realpath()`, and symlink targets outside the project are ignored. Missing paths stay visible in the `Misc` table with `0 B`.
 
 The manual backend-module refresh is restricted to backend administrators. Non-admin users still see the last update timestamp and refresh status, but they do not see the runtime or the `Recalculate` action. The CLI command `size:refresh` remains available regardless of backend permissions.

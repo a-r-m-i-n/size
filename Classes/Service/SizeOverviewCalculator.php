@@ -101,7 +101,7 @@ final class SizeOverviewCalculator
      *   vendor: array{bytes: int, label: string},
      *   extensions: array{bytes: int, label: string},
      *   dependencies: array{bytes: int, label: string},
-     *   rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}>,
      *   total: array{bytes: int, label: string}
      * }
      */
@@ -124,9 +124,9 @@ final class SizeOverviewCalculator
 
         $total = $groups['vendor'] + $groups['extensions'] + $groups['dependencies'];
         $rows = [
-            $this->createBreakdownRow('vendor', 'code.vendor', $groups['vendor'], $total),
-            $this->createBreakdownRow('extensions', 'code.extensions', $groups['extensions'], $total),
-            $this->createBreakdownRow('dependencies', 'code.dependencies', $groups['dependencies'], $total),
+            $this->createBreakdownRow('vendor', $groups['vendor'], $total, 'code.vendor'),
+            $this->createBreakdownRow('extensions', $groups['extensions'], $total, 'code.extensions'),
+            $this->createBreakdownRow('dependencies', $groups['dependencies'], $total, 'code.dependencies'),
         ];
 
         return [
@@ -173,13 +173,14 @@ final class SizeOverviewCalculator
 
     /**
      * @return array{
-     *   rows: list<array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}>,
+     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}>,
      *   total: array{bytes: int, label: string}
      * }
      */
     private function getMiscOverview(): array
     {
         $projectPath = Environment::getProjectPath();
+        $normalizedProjectPath = $this->normalizePath($projectPath) ?? rtrim($projectPath, '/');
         $publicPath = Environment::getPublicPath();
         $projectRootFilesBytes = 0;
 
@@ -196,27 +197,56 @@ final class SizeOverviewCalculator
             [
                 'identifier' => 'projectRootFiles',
                 'labelKey' => 'misc.projectRootFiles',
+                'label' => null,
                 'bytes' => $projectRootFilesBytes,
+                'countedPath' => null,
             ],
             [
                 'identifier' => 'config',
                 'labelKey' => 'misc.config',
+                'label' => null,
                 'bytes' => $this->getPathSize($projectPath . '/config'),
+                'countedPath' => $this->resolveCountedMiscPath($projectPath . '/config', $normalizedProjectPath),
             ],
             [
                 'identifier' => 'var',
                 'labelKey' => 'misc.var',
+                'label' => null,
                 'bytes' => $this->getPathSize($projectPath . '/var'),
+                'countedPath' => $this->resolveCountedMiscPath($projectPath . '/var', $normalizedProjectPath),
             ],
             [
                 'identifier' => 'publicTypo3temp',
                 'labelKey' => 'misc.publicTypo3temp',
+                'label' => null,
                 'bytes' => $this->getPathSize($publicPath . '/typo3temp'),
+                'countedPath' => $this->resolveCountedMiscPath($publicPath . '/typo3temp', $normalizedProjectPath),
             ],
         ];
-        $totalBytes = array_sum(array_map(static fn (array $row): int => $row['bytes'], $rows));
+
+        foreach ($this->getConfiguredAdditionalMiscFolders($normalizedProjectPath) as $additionalFolder) {
+            $rows[] = [
+                'identifier' => 'additional-' . md5($additionalFolder['label']),
+                'labelKey' => null,
+                'label' => $additionalFolder['label'],
+                'bytes' => $additionalFolder['bytes'],
+                'countedPath' => $additionalFolder['countedPath'],
+            ];
+        }
+
+        $totalBytes = $projectRootFilesBytes;
+        $countedPaths = [];
+        foreach ($rows as $row) {
+            if (null !== $row['countedPath']) {
+                $countedPaths[$row['countedPath']] = true;
+            }
+        }
+        foreach ($this->getNonOverlappingPaths(array_keys($countedPaths)) as $countedPath) {
+            $totalBytes += $this->getPathSize($countedPath);
+        }
+
         $rows = array_map(
-            fn (array $row): array => $this->createBreakdownRow($row['identifier'], $row['labelKey'], $row['bytes'], $totalBytes),
+            fn (array $row): array => $this->createBreakdownRow($row['identifier'], $row['bytes'], $totalBytes, $row['labelKey'], $row['label']),
             $rows,
         );
 
@@ -224,6 +254,49 @@ final class SizeOverviewCalculator
             'rows' => $rows,
             'total' => $this->createByteValue($totalBytes),
         ];
+    }
+
+    /**
+     * @return list<array{label: string, bytes: int, countedPath: string|null}>
+     */
+    private function getConfiguredAdditionalMiscFolders(string $normalizedProjectPath): array
+    {
+        try {
+            $configuration = $this->extensionConfiguration->get('size');
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!is_array($configuration)) {
+            return [];
+        }
+
+        $configuredValue = (string)($configuration['additionalMiscFolders'] ?? '');
+        if ('' === trim($configuredValue)) {
+            return [];
+        }
+
+        $folders = [];
+        foreach (preg_split('/[\r\n,]+/', $configuredValue) ?: [] as $configuredFolder) {
+            $relativePath = $this->normalizeConfiguredProjectRelativePath($configuredFolder);
+            if (null === $relativePath) {
+                continue;
+            }
+
+            $absolutePath = $normalizedProjectPath . '/' . $relativePath;
+            $resolvedPath = $this->normalizePath($absolutePath);
+            if (null !== $resolvedPath && !$this->isPathWithinBasePath($resolvedPath, $normalizedProjectPath)) {
+                continue;
+            }
+
+            $folders[] = [
+                'label' => $relativePath,
+                'bytes' => $this->getPathSize($absolutePath),
+                'countedPath' => $resolvedPath,
+            ];
+        }
+
+        return $folders;
     }
 
     /**
@@ -411,6 +484,32 @@ final class SizeOverviewCalculator
         }
 
         return $result;
+    }
+
+    private function normalizeConfiguredProjectRelativePath(string $path): ?string
+    {
+        $path = trim(str_replace('\\', '/', $path));
+        if ('' === $path || str_starts_with($path, '/')) {
+            return null;
+        }
+
+        $segments = [];
+        foreach (explode('/', $path) as $segment) {
+            if ('' === $segment || '.' === $segment) {
+                continue;
+            }
+            if ('..' === $segment) {
+                return null;
+            }
+
+            $segments[] = $segment;
+        }
+
+        if ([] === $segments) {
+            return null;
+        }
+
+        return implode('/', $segments);
     }
 
     /**
@@ -954,14 +1053,16 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{identifier: string, labelKey: string, label: string, bytes: int, sizeLabel: string, percentage: float}
+     * @return array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}
      */
-    private function createBreakdownRow(string $identifier, string $labelKey, int $bytes, int $totalBytes): array
+    private function createBreakdownRow(string $identifier, int $bytes, int $totalBytes, ?string $labelKey = null, ?string $label = null): array
     {
+        $resolvedLabel = $label ?? (null !== $labelKey ? $this->translate($labelKey) : '');
+
         return [
             'identifier' => $identifier,
             'labelKey' => $labelKey,
-            'label' => $this->translate($labelKey),
+            'label' => $resolvedLabel,
             'bytes' => $bytes,
             'sizeLabel' => sprintf(
                 '%s (%s)',
@@ -1158,6 +1259,21 @@ final class SizeOverviewCalculator
         }
 
         return $this->parseSizeStringToBytes($configuredValue);
+    }
+
+    private function resolveCountedMiscPath(string $path, string $normalizedProjectPath): ?string
+    {
+        $resolvedPath = $this->normalizePath($path);
+        if (null === $resolvedPath) {
+            return null;
+        }
+
+        return $this->isPathWithinBasePath($resolvedPath, $normalizedProjectPath) ? $resolvedPath : null;
+    }
+
+    private function isPathWithinBasePath(string $path, string $basePath): bool
+    {
+        return $path === $basePath || str_starts_with($path . '/', $basePath . '/');
     }
 
     private function parseSizeStringToBytes(string $value): ?int

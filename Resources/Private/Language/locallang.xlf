@@ -120,6 +120,12 @@
             <trans-unit id="settings.fullNotificationRecipients.description">
                 <source>Optional comma- or line-separated email recipients for full notifications at or above 100%.</source>
             </trans-unit>
+            <trans-unit id="settings.additionalMiscFolders">
+                <source>Additional Misc folders</source>
+            </trans-unit>
+            <trans-unit id="settings.additionalMiscFolders.description">
+                <source>Optional comma- or line-separated relative project paths that should be included as separate rows in the Misc section, for example packages, public/uploads, or Build/cache.</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Extended storage statistics</source>
             </trans-unit>
@@ -136,7 +142,7 @@
                 <source>Unnamed storage</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.miscDescription">
-                <source>Includes project root files plus the config, var, and public/typo3temp directories.</source>
+                <source>Includes project root files plus the config, var, and public/typo3temp directories, and optional additional folders from the extension settings.</source>
             </trans-unit>
             <trans-unit id="misc.projectRootFiles">
                 <source>Project root files</source>

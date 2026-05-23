@@ -536,7 +536,7 @@
                     <f:for each="{misc.rows}" as="miscRow">
                         <tr
                             class="size-storage-table-row"
-                            data-label="{f:translate(key: miscRow.labelKey, extensionName: 'size')}"
+                            data-label="{miscRow.label}"
                             data-bytes="{miscRow.bytes}"
                             style="--size-storage-row-fill: {miscRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
                         >
@@ -545,7 +545,12 @@
                                     <span class="size-storage-table-icon size-storage-detail-icon-misc">
                                         <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="small" />
                                     </span>
-                                    <span><f:translate key="{miscRow.labelKey}" extensionName="size" /></span>
+                                    <span>
+                                        <f:if condition="{miscRow.labelKey}">
+                                            <f:then><f:translate key="{miscRow.labelKey}" extensionName="size" /></f:then>
+                                            <f:else>{miscRow.label}</f:else>
+                                        </f:if>
+                                    </span>
                                 </span>
                             </td>
                             <td class="text-end">

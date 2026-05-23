@@ -9,3 +9,7 @@ warningNotificationRecipients =
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients
 # description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients.description
 fullNotificationRecipients =
+
+# cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders
+# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders.description
+additionalMiscFolders =
