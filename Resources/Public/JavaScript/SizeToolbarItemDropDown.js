@@ -49,7 +49,8 @@
             panel.style.opacity = '0';
 
             requestAnimationFrame(() => {
-                panel.style.height = panel.scrollHeight + 'px';
+                const targetHeight = panel.scrollHeight;
+                panel.style.height = (targetHeight > 0 ? targetHeight : panel.offsetHeight) + 'px';
                 panel.style.opacity = '1';
             });
 
@@ -88,10 +89,17 @@
             panel.hidden = true;
         });
 
-        toggle.addEventListener('click', () => {
+        toggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
             const expanded = toggle.getAttribute('aria-expanded') !== 'true';
             animatePanel(toggle, panel, expanded);
             writeExpandedState(expanded);
+        });
+
+        panel.addEventListener('click', (event) => {
+            event.stopPropagation();
         });
     };
 
