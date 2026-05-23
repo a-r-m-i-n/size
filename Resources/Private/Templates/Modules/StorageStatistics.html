@@ -14,7 +14,7 @@
 />
 
 <div class="module-body size-storage-module">
-    <f:flashMessages />
+    <f:flashMessages queueIdentifier="core.template.flashMessages" />
 
     <f:if condition="{isAdminUser}">
         <form id="{refreshFormId}" action="{refreshActionUrl}" method="post">
