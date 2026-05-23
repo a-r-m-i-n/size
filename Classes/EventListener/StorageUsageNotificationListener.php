@@ -6,6 +6,7 @@ namespace T3\Size\EventListener;
 
 use Psr\Log\LoggerInterface;
 use T3\Size\Event\BeforeSizeOverviewSnapshotStoredEvent;
+use T3\Size\Service\ByteFormatter;
 use T3\Size\Service\StorageUsageNotificationRegistry;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
@@ -31,6 +32,7 @@ final readonly class StorageUsageNotificationListener
     public function __construct(
         private ExtensionConfiguration $extensionConfiguration,
         private StorageUsageNotificationRegistry $notificationRegistry,
+        private ByteFormatter $byteFormatter,
         private MailerInterface $mailer,
         private LanguageServiceFactory $languageServiceFactory,
         private SiteFinder $siteFinder,
@@ -306,22 +308,6 @@ final readonly class StorageUsageNotificationListener
 
     private function formatBytes(int $bytes): string
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $value = (float)$bytes;
-        $unitIndex = 0;
-
-        while ($value >= 1024 && isset($units[$unitIndex + 1])) {
-            $value /= 1024;
-            ++$unitIndex;
-        }
-
-        $precision = 0 === $unitIndex ? 0 : 2;
-        $formattedValue = number_format($value, $precision, '.', ' ');
-
-        if ($precision > 0) {
-            $formattedValue = rtrim(rtrim($formattedValue, '0'), '.');
-        }
-
-        return $formattedValue . ' ' . $units[$unitIndex];
+        return $this->byteFormatter->format($bytes);
     }
 }

@@ -50,6 +50,7 @@ final class SizeOverviewCalculator
         private readonly ConnectionPool $connectionPool,
         private readonly BackendLocalizationHelper $backendLocalizationHelper,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly ByteFormatter $byteFormatter,
     ) {
     }
 
@@ -1191,23 +1192,7 @@ final class SizeOverviewCalculator
 
     private function formatBytes(int $bytes): string
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $value = (float)$bytes;
-        $unitIndex = 0;
-
-        while ($value >= 1024 && isset($units[$unitIndex + 1])) {
-            $value /= 1024;
-            ++$unitIndex;
-        }
-
-        $precision = 0 === $unitIndex ? 0 : 2;
-        $formattedValue = number_format($value, $precision, '.', ' ');
-
-        if ($precision > 0) {
-            $formattedValue = rtrim(rtrim($formattedValue, '0'), '.');
-        }
-
-        return $formattedValue . ' ' . $units[$unitIndex];
+        return $this->byteFormatter->format($bytes);
     }
 
     private function formatPercentage(int $bytes, int $totalBytes): string
