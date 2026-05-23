@@ -684,10 +684,12 @@ final class SizeOverviewCalculator
      * @return array{
      *   connections: list<array{
      *     name: string,
+     *     tableCount: int,
+     *     tableCountLabel: string,
      *     bytes: int|null,
      *     label: string,
      *     available: bool,
-     *     tables: list<array{name: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
+     *     tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, columnCount: int, columnCountLabel: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      *   }>,
      *   total: array{bytes: int|null, label: string, available: bool}
      * }
@@ -700,7 +702,11 @@ final class SizeOverviewCalculator
 
         foreach (array_keys($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'] ?? []) as $connectionName) {
             $databaseConnection = $this->getSingleDatabaseOverview((string)$connectionName);
-            $connections[] = ['name' => (string)$connectionName, ...$databaseConnection];
+            $connections[] = [
+                'name' => (string)$connectionName,
+                'tableCountLabel' => $this->formatTableCountLabel($databaseConnection['tableCount']),
+                ...$databaseConnection,
+            ];
 
             if ($databaseConnection['available'] && null !== $databaseConnection['bytes']) {
                 $totalBytes += $databaseConnection['bytes'];
@@ -718,10 +724,11 @@ final class SizeOverviewCalculator
 
     /**
      * @return array{
+     *   tableCount: int,
      *   bytes: int|null,
      *   label: string,
      *   available: bool,
-     *   tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
+     *   tables: list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, columnCount: int, columnCountLabel: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      * }
      */
     private function getSingleDatabaseOverview(string $connectionName): array
@@ -729,6 +736,7 @@ final class SizeOverviewCalculator
         try {
             $connection = $this->connectionPool->getConnectionByName($connectionName);
             $tables = $this->getDatabaseTablesOverview($connection);
+            $tableCount = $connection->createSchemaManager()->listTableNames();
             $availableTables = array_filter(
                 $tables,
                 static fn (array $table): bool => $table['available'] && null !== $table['bytes'],
@@ -748,21 +756,21 @@ final class SizeOverviewCalculator
                 }
                 unset($table);
 
-                return [...$this->createByteValue($bytes), 'available' => true, 'tables' => $tables];
+                return [...$this->createByteValue($bytes), 'tableCount' => count($tableCount), 'available' => true, 'tables' => $tables];
             }
 
             if ([] !== $tables) {
-                return [...$this->createUnavailableValue(), 'available' => false, 'tables' => $tables];
+                return [...$this->createUnavailableValue(), 'tableCount' => count($tableCount), 'available' => false, 'tables' => $tables];
             }
         } catch (\Throwable) {
-            return [...$this->createUnavailableValue(), 'available' => false, 'tables' => []];
+            return [...$this->createUnavailableValue(), 'tableCount' => 0, 'available' => false, 'tables' => []];
         }
 
-        return [...$this->createUnavailableValue(), 'available' => false, 'tables' => []];
+        return [...$this->createUnavailableValue(), 'tableCount' => 0, 'available' => false, 'tables' => []];
     }
 
     /**
-     * @return list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
+     * @return list<array{name: string, title: string|null, iconIdentifier: string, usesFallbackIcon: bool, columnCount: int, columnCountLabel: string, rowCount: int|null, rowCountLabel: string, bytes: int|null, formattedBytes: string, sizeLabel: string, percentage: float, available: bool}>
      */
     private function getDatabaseTablesOverview(Typo3Connection $connection): array
     {
@@ -775,11 +783,14 @@ final class SizeOverviewCalculator
             $rowCount = $tableMetadata[$tableName]['rowCount'] ?? $this->getTableRowCount($connection, $tableName);
             $bytes = $tableMetadata[$tableName]['bytes'] ?? null;
             $iconIdentifier = $this->getTableIconIdentifier($tableName);
+            $columnCount = count($schemaManager->listTableColumns($tableName));
             $tables[] = [
                 'name' => $tableName,
                 'title' => $this->getTableTitle($tableName),
                 'iconIdentifier' => $iconIdentifier,
                 'usesFallbackIcon' => 'actions-database' === $iconIdentifier,
+                'columnCount' => $columnCount,
+                'columnCountLabel' => (string)$columnCount,
                 'rowCount' => $rowCount,
                 'rowCountLabel' => null !== $rowCount ? (string)$rowCount : $this->translate(self::NOT_AVAILABLE),
                 'bytes' => $bytes,
@@ -1334,6 +1345,14 @@ final class SizeOverviewCalculator
     private function translate(string $key): string
     {
         return $this->backendLocalizationHelper->translate($key);
+    }
+
+    private function formatTableCountLabel(int $tableCount): string
+    {
+        return sprintf(
+            $this->translate('database.tableCount'),
+            $tableCount,
+        );
     }
 
     private function resolveLabel(string $label): string

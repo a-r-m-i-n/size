@@ -382,6 +382,16 @@
     font-size: .9rem;
 }
 
+.size-storage-connection-name {
+    font-weight: 700;
+}
+
+.size-storage-connection-count {
+    margin-left: 0.3rem;
+    font-weight: 400;
+    color: var(--size-storage-text-muted);
+}
+
 .size-storage-subsection + .size-storage-subsection,
 .size-storage-detail-list + .size-storage-subsection {
     margin-top: 1rem;
@@ -432,6 +442,11 @@
 .size-storage-detail-list dd {
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.size-storage-card-link:hover .size-storage-connection-count,
+.size-storage-card-link:focus-visible .size-storage-connection-count {
+    color: inherit;
 }
 
 .size-storage-table {
@@ -550,6 +565,12 @@
 .size-storage-table-database {
     --size-storage-row-fill-color: rgba(78, 125, 207, 0.24);
     --size-storage-row-fill-color-odd: rgba(78, 125, 207, 0.34);
+}
+
+.size-storage-table-database th:nth-child(2),
+.size-storage-table-database td:nth-child(2) {
+    width: 5.5rem;
+    white-space: nowrap;
 }
 
 .size-storage-table-code {

@@ -162,7 +162,10 @@
                         <f:then>
                             <dl class="size-storage-detail-list">
                                 <f:for each="{database.connections}" as="connection">
-                                    <dt>{connection.name}</dt>
+                                    <dt>
+                                        <span class="size-storage-connection-name">{connection.name}</span>
+                                        <span class="size-storage-connection-count">{connection.tableCountLabel}</span>
+                                    </dt>
                                     <dd>{connection.label}</dd>
                                 </f:for>
                             </dl>
@@ -320,7 +323,10 @@
                     <f:for each="{database.connections}" as="connection">
                         <section class="size-storage-subsection">
                             <div class="size-storage-connection-header">
-                                <h3 class="size-storage-subheading">{connection.name}</h3>
+                                <h3 class="size-storage-subheading">
+                                    <span class="size-storage-connection-name">{connection.name}</span>
+                                    <span class="size-storage-connection-count">{connection.tableCountLabel}</span>
+                                </h3>
                                 <span class="size-storage-connection-total">{connection.label}</span>
                             </div>
                             <div class="table-responsive">
@@ -340,6 +346,18 @@
                                                     aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
                                                 >
                                                     <span><f:translate key="table.table" extensionName="size" /></span>
+                                                </button>
+                                            </th>
+                                            <th scope="col" class="text-end" aria-sort="none">
+                                                <button
+                                                    type="button"
+                                                    class="size-storage-sort-button size-storage-sort-button-end"
+                                                    data-sort-key="columnCount"
+                                                    data-sort-type="number"
+                                                    title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                    aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                                >
+                                                    <span><f:translate key="table.cols" extensionName="size" /></span>
                                                 </button>
                                             </th>
                                             <th scope="col" class="text-end" aria-sort="none">
@@ -374,6 +392,7 @@
                                                 class="size-storage-table-row"
                                                 data-label="{tableRow.name}"
                                                 data-title="{tableRow.title}"
+                                                data-column-count="{tableRow.columnCount}"
                                                 data-row-count="{tableRow.rowCount}"
                                                 data-bytes="{tableRow.bytes}"
                                                 style="--size-storage-row-fill: {tableRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
@@ -401,6 +420,9 @@
                                                             </f:if>
                                                         </span>
                                                     </span>
+                                                </td>
+                                                <td class="text-end size-storage-table-col-count">
+                                                    <span class="size-storage-table-cell-content">{tableRow.columnCountLabel}</span>
                                                 </td>
                                                 <td class="text-end">
                                                     <span class="size-storage-table-cell-content">{tableRow.rowCountLabel}</span>
