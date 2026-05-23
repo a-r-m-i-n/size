@@ -11,6 +11,7 @@ This repository contains a TYPO3 extension with Composer type `typo3-cms-extensi
 - Available local TYPO3 environments:
   - Composer mode: `v13`, `v14`
   - Classic mode: `v13-classic`, `v14-classic`
+- The extension itself is mounted to: `/var/www/size` (relevant for code quality checks)
 - PHP namespace root: `T3\\Size\\`
 
 ## Mandatory Rules
@@ -27,6 +28,13 @@ This repository contains a TYPO3 extension with Composer type `typo3-cms-extensi
 ## Command Execution
 
 - When commands must be executed for the TYPO3 project, use `ddev exec`.
+- To run Composer scripts for this extension, connect to the DDEV container, change to `/var/www/size`, and execute `composer run <scriptname>` there.
+- Code quality tools added via Composer scripts must be executed after relevant PHP code changes.
+- In particular, mention and use `phpcs:fix` for coding standards fixes and `phpstan` for static analysis when PHP code was changed:
+```bash
+ddev exec bash -lc "cd ../size && composer run phpcs:fix"
+ddev exec bash -lc "cd ../size && composer run phpstan"
+```
 - When database queries must be executed via DDEV, explicitly target the intended database schema (`v13`, `v14`, `v13_classic`, or `v14_classic`). Do not assume TYPO3 tables are in the default `db` schema.
 - Important: inside the container, TYPO3 project environments are located in these subdirectories:
   - Composer mode: `v13` and `v14`

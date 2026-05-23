@@ -26,7 +26,13 @@
     },
     "require-dev": {
         "typo3/cms-dashboard": "^13.4 || ^14.3",
-        "typo3/cms-scheduler": "^13.4 || ^14.3"
+        "typo3/cms-scheduler": "^13.4 || ^14.3",
+        "armin/editorconfig-cli": "^2.2.1",
+        "friendsofphp/php-cs-fixer": "^3.95.2",
+        "jangregor/phpstan-prophecy": "^2.3",
+        "phpstan/phpstan": "^2.1.55",
+        "phpstan/phpstan-doctrine": "^2.0.22",
+        "saschaegerer/phpstan-typo3": "^3.0.1"
     },
     "autoload": {
         "psr-4": {
@@ -46,5 +52,22 @@
             "typo3/cms-composer-installers": true,
             "typo3/class-alias-loader": true
         }
+    },
+    "scripts": {
+        "check": [
+            "@editorconfig",
+            "@phpcs",
+            "@phpstan"
+        ],
+        "fix": [
+            "@editorconfig:fix",
+            "@phpcs:fix",
+            "@phpstan"
+        ],
+        "editorconfig": "ec -unv -e public/assets -e var -e tmp",
+        "editorconfig:fix": "ec -unvf -e public/assets -e var -e tmp",
+        "phpcs": "php-cs-fixer fix --config .build/php-cs-rules.php --ansi --verbose --diff --dry-run",
+        "phpcs:fix": "php-cs-fixer fix --config .build/php-cs-rules.php --ansi",
+        "phpstan": "phpstan analyse -c .build/phpstan.neon"
     }
 }
