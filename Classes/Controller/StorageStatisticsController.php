@@ -64,23 +64,13 @@ final readonly class StorageStatisticsController
 
     public function refreshAction(ServerRequestInterface $request): ResponseInterface
     {
-        if (!$this->sizeOverviewProvider->isAdminUser()) {
-            $this->enqueueFlashMessage(
-                $this->translate('module.storageStatistics.refreshRequiresAdmin'),
-                ContextualFeedbackSeverity::WARNING
-            );
-
-            return $this->redirectToOverview();
-        }
-
-        $parsedBody = $request->getParsedBody();
-        $formToken = is_array($parsedBody) ? (string)($parsedBody['formToken'] ?? '') : '';
-        if (!$this->formProtectionFactory->createFromRequest($request)->validateToken(
-            $formToken,
-            'size/storage-statistics',
-            'refresh'
-        )) {
-            return $this->redirectToOverview();
+        $validationResponse = $this->validateProtectedActionRequest(
+            $request,
+            'refresh',
+            'module.storageStatistics.refreshRequiresAdmin'
+        );
+        if ($validationResponse instanceof ResponseInterface) {
+            return $validationResponse;
         }
 
         $result = $this->refreshService->refresh();
@@ -106,23 +96,13 @@ final readonly class StorageStatisticsController
 
     public function resetAction(ServerRequestInterface $request): ResponseInterface
     {
-        if (!$this->sizeOverviewProvider->isAdminUser()) {
-            $this->enqueueFlashMessage(
-                $this->translate('module.storageStatistics.resetRequiresAdmin'),
-                ContextualFeedbackSeverity::WARNING
-            );
-
-            return $this->redirectToOverview();
-        }
-
-        $parsedBody = $request->getParsedBody();
-        $formToken = is_array($parsedBody) ? (string)($parsedBody['formToken'] ?? '') : '';
-        if (!$this->formProtectionFactory->createFromRequest($request)->validateToken(
-            $formToken,
-            'size/storage-statistics',
-            'reset'
-        )) {
-            return $this->redirectToOverview();
+        $validationResponse = $this->validateProtectedActionRequest(
+            $request,
+            'reset',
+            'module.storageStatistics.resetRequiresAdmin'
+        );
+        if ($validationResponse instanceof ResponseInterface) {
+            return $validationResponse;
         }
 
         $this->snapshotStorage->removeSnapshot();
@@ -134,6 +114,33 @@ final readonly class StorageStatisticsController
         );
 
         return $this->redirectToOverview();
+    }
+
+    private function validateProtectedActionRequest(
+        ServerRequestInterface $request,
+        string $tokenAction,
+        string $adminMessageKey
+    ): ?ResponseInterface {
+        if (!$this->sizeOverviewProvider->isAdminUser()) {
+            $this->enqueueFlashMessage(
+                $this->translate($adminMessageKey),
+                ContextualFeedbackSeverity::WARNING
+            );
+
+            return $this->redirectToOverview();
+        }
+
+        $parsedBody = $request->getParsedBody();
+        $formToken = is_array($parsedBody) ? (string)($parsedBody['formToken'] ?? '') : '';
+        if (!$this->formProtectionFactory->createFromRequest($request)->validateToken(
+            $formToken,
+            'size/storage-statistics',
+            $tokenAction
+        )) {
+            return $this->redirectToOverview();
+        }
+
+        return null;
     }
 
     private function redirectToOverview(): ResponseInterface
