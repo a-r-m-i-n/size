@@ -21,6 +21,9 @@
     --size-storage-shadow: var(--typo3-component-box-shadow, 0 18px 40px rgba(26, 39, 56, 0.06));
     --size-storage-row-base: var(--typo3-surface-container-low, #eef1f5);
     --size-storage-row-base-odd: var(--typo3-surface-container-base, #e2e7ee);
+}
+
+.size-storage-layout {
     display: grid;
     gap: 1.5rem;
 }
