@@ -78,6 +78,9 @@
             <trans-unit id="table.files">
                 <source>Files</source>
             </trans-unit>
+            <trans-unit id="table.dirs">
+                <source>Dirs</source>
+            </trans-unit>
             <trans-unit id="table.cols">
                 <source>Cols</source>
             </trans-unit>

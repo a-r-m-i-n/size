@@ -478,6 +478,30 @@
                             <button
                                 type="button"
                                 class="size-storage-sort-button size-storage-sort-button-end"
+                                data-sort-key="dirCount"
+                                data-sort-type="number"
+                                title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                            >
+                                <span><f:translate key="table.dirs" extensionName="size" /></span>
+                            </button>
+                        </th>
+                        <th scope="col" class="text-end" aria-sort="none">
+                            <button
+                                type="button"
+                                class="size-storage-sort-button size-storage-sort-button-end"
+                                data-sort-key="fileCount"
+                                data-sort-type="number"
+                                title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                            >
+                                <span><f:translate key="table.files" extensionName="size" /></span>
+                            </button>
+                        </th>
+                        <th scope="col" class="text-end" aria-sort="none">
+                            <button
+                                type="button"
+                                class="size-storage-sort-button size-storage-sort-button-end"
                                 data-sort-key="bytes"
                                 data-sort-type="number"
                                 title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
@@ -492,7 +516,9 @@
                     <f:for each="{code.rows}" as="codeRow">
                         <tr
                             class="size-storage-table-row"
-                            data-label="{f:translate(key: codeRow.labelKey, extensionName: 'size')}"
+                            data-label="{codeRow.label}"
+                            data-file-count="{codeRow.fileCount}"
+                            data-dir-count="{codeRow.dirCount}"
                             data-bytes="{codeRow.bytes}"
                             style="--size-storage-row-fill: {codeRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
                         >
@@ -503,6 +529,12 @@
                                     </span>
                                     <span><f:translate key="{codeRow.labelKey}" extensionName="size" /></span>
                                 </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="size-storage-table-cell-content">{codeRow.dirCount}</span>
+                            </td>
+                            <td class="text-end">
+                                <span class="size-storage-table-cell-content">{codeRow.fileCount}</span>
                             </td>
                             <td class="text-end">
                                 <span class="size-storage-table-cell-content">{codeRow.sizeLabel}</span>
@@ -544,6 +576,30 @@
                             <button
                                 type="button"
                                 class="size-storage-sort-button size-storage-sort-button-end"
+                                data-sort-key="dirCount"
+                                data-sort-type="number"
+                                title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                            >
+                                <span><f:translate key="table.dirs" extensionName="size" /></span>
+                            </button>
+                        </th>
+                        <th scope="col" class="text-end" aria-sort="none">
+                            <button
+                                type="button"
+                                class="size-storage-sort-button size-storage-sort-button-end"
+                                data-sort-key="fileCount"
+                                data-sort-type="number"
+                                title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                                aria-label="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
+                            >
+                                <span><f:translate key="table.files" extensionName="size" /></span>
+                            </button>
+                        </th>
+                        <th scope="col" class="text-end" aria-sort="none">
+                            <button
+                                type="button"
+                                class="size-storage-sort-button size-storage-sort-button-end"
                                 data-sort-key="bytes"
                                 data-sort-type="number"
                                 title="{f:translate(key: 'module.storageStatistics.sortColumn', extensionName: 'size')}"
@@ -559,6 +615,8 @@
                         <tr
                             class="size-storage-table-row"
                             data-label="{miscRow.label}"
+                            data-file-count="{miscRow.fileCount}"
+                            data-dir-count="{miscRow.dirCount}"
                             data-bytes="{miscRow.bytes}"
                             style="--size-storage-row-fill: {miscRow.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%"
                         >
@@ -574,6 +632,12 @@
                                         </f:if>
                                     </span>
                                 </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="size-storage-table-cell-content">{miscRow.dirCount}</span>
+                            </td>
+                            <td class="text-end">
+                                <span class="size-storage-table-cell-content">{miscRow.fileCount}</span>
                             </td>
                             <td class="text-end">
                                 <span class="size-storage-table-cell-content">{miscRow.sizeLabel}</span>

@@ -36,12 +36,12 @@ final class SizeOverviewCalculator
     private ?array $overviewCache = null;
 
     /**
-     * @var array<string, array{bytes: int, fileCount: int}>
+     * @var array<string, array{bytes: int, fileCount: int, dirCount: int}>
      */
     private array $filesystemMetricsCache = [];
 
     /**
-     * @var array<int, array{bytes: int|null, fileCount: int|null, label: string, paths: list<string>}>
+     * @var array<int, array{bytes: int|null, fileCount: int|null, dirCount: int|null, label: string, paths: list<string>}>
      */
     private array $storageMeasurementCache = [];
 
@@ -98,19 +98,20 @@ final class SizeOverviewCalculator
 
     /**
      * @return array{
-     *   vendor: array{bytes: int, label: string},
-     *   extensions: array{bytes: int, label: string},
-     *   dependencies: array{bytes: int, label: string},
-     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *   total: array{bytes: int, label: string}
+     *   vendor: array{bytes: int, fileCount: int, dirCount: int, label: string},
+     *   extensions: array{bytes: int, fileCount: int, dirCount: int, label: string},
+     *   dependencies: array{bytes: int, fileCount: int, dirCount: int, label: string},
+     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, fileCount: int, dirCount: int, sizeLabel: string, percentage: float}>,
+     *   total: array{bytes: int, fileCount: int, dirCount: int, label: string}
      * }
      */
     private function getCodeOverview(): array
     {
+        /** @var array<string, array{bytes: int, fileCount: int, dirCount: int}> $groups */
         $groups = [
-            'vendor' => 0,
-            'extensions' => 0,
-            'dependencies' => 0,
+            'vendor' => ['bytes' => 0, 'fileCount' => 0, 'dirCount' => 0],
+            'extensions' => ['bytes' => 0, 'fileCount' => 0, 'dirCount' => 0],
+            'dependencies' => ['bytes' => 0, 'fileCount' => 0, 'dirCount' => 0],
         ];
         $countedPaths = [];
 
@@ -118,23 +119,34 @@ final class SizeOverviewCalculator
             if (isset($countedPaths[$package['path']])) {
                 continue;
             }
+            $group = $package['group'];
+            if (!isset($groups[$group])) {
+                continue;
+            }
             $countedPaths[$package['path']] = true;
-            $groups[$package['group']] += $this->getPathSize($package['path']);
+            $metrics = $this->getFilesystemMetrics($package['path']);
+            $groups[$group]['bytes'] += $metrics['bytes'];
+            $groups[$group]['fileCount'] += $metrics['fileCount'];
+            $groups[$group]['dirCount'] += $metrics['dirCount'];
         }
 
-        $total = $groups['vendor'] + $groups['extensions'] + $groups['dependencies'];
+        $total = [
+            'bytes' => $groups['vendor']['bytes'] + $groups['extensions']['bytes'] + $groups['dependencies']['bytes'],
+            'fileCount' => $groups['vendor']['fileCount'] + $groups['extensions']['fileCount'] + $groups['dependencies']['fileCount'],
+            'dirCount' => $groups['vendor']['dirCount'] + $groups['extensions']['dirCount'] + $groups['dependencies']['dirCount'],
+        ];
         $rows = [
-            $this->createBreakdownRow('vendor', $groups['vendor'], $total, 'code.vendor'),
-            $this->createBreakdownRow('extensions', $groups['extensions'], $total, 'code.extensions'),
-            $this->createBreakdownRow('dependencies', $groups['dependencies'], $total, 'code.dependencies'),
+            $this->createBreakdownRow('vendor', $groups['vendor']['bytes'], $total['bytes'], 'code.vendor', null, $groups['vendor']['fileCount'], $groups['vendor']['dirCount']),
+            $this->createBreakdownRow('extensions', $groups['extensions']['bytes'], $total['bytes'], 'code.extensions', null, $groups['extensions']['fileCount'], $groups['extensions']['dirCount']),
+            $this->createBreakdownRow('dependencies', $groups['dependencies']['bytes'], $total['bytes'], 'code.dependencies', null, $groups['dependencies']['fileCount'], $groups['dependencies']['dirCount']),
         ];
 
         return [
-            'vendor' => $this->createByteValue($groups['vendor']),
-            'extensions' => $this->createByteValue($groups['extensions']),
-            'dependencies' => $this->createByteValue($groups['dependencies']),
+            'vendor' => $this->createFilesystemSummaryValue($groups['vendor']['bytes'], $groups['vendor']['fileCount'], $groups['vendor']['dirCount']),
+            'extensions' => $this->createFilesystemSummaryValue($groups['extensions']['bytes'], $groups['extensions']['fileCount'], $groups['extensions']['dirCount']),
+            'dependencies' => $this->createFilesystemSummaryValue($groups['dependencies']['bytes'], $groups['dependencies']['fileCount'], $groups['dependencies']['dirCount']),
             'rows' => $rows,
-            'total' => $this->createByteValue($total),
+            'total' => $this->createFilesystemSummaryValue($total['bytes'], $total['fileCount'], $total['dirCount']),
         ];
     }
 
@@ -173,8 +185,8 @@ final class SizeOverviewCalculator
 
     /**
      * @return array{
-     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}>,
-     *   total: array{bytes: int, label: string}
+     *   rows: list<array{identifier: string, labelKey: string|null, label: string, bytes: int, fileCount: int, dirCount: int, sizeLabel: string, percentage: float}>,
+     *   total: array{bytes: int, fileCount: int, dirCount: int, label: string}
      * }
      */
     private function getMiscOverview(): array
@@ -183,6 +195,7 @@ final class SizeOverviewCalculator
         $normalizedProjectPath = $this->normalizePath($projectPath) ?? rtrim($projectPath, '/');
         $publicPath = Environment::getPublicPath();
         $projectRootFilesBytes = 0;
+        $projectRootFilesCount = 0;
 
         foreach (new \FilesystemIterator($projectPath, \FilesystemIterator::SKIP_DOTS) as $item) {
             if (!$item instanceof \SplFileInfo) {
@@ -190,6 +203,7 @@ final class SizeOverviewCalculator
             }
             if ($item->isFile() && !$item->isLink()) {
                 $projectRootFilesBytes += $item->getSize();
+                ++$projectRootFilesCount;
             }
         }
 
@@ -199,27 +213,29 @@ final class SizeOverviewCalculator
                 'labelKey' => 'misc.projectRootFiles',
                 'label' => null,
                 'bytes' => $projectRootFilesBytes,
+                'fileCount' => $projectRootFilesCount,
+                'dirCount' => 0,
                 'countedPath' => null,
             ],
             [
                 'identifier' => 'config',
                 'labelKey' => 'misc.config',
                 'label' => null,
-                'bytes' => $this->getPathSize($projectPath . '/config'),
+                ...$this->createMiscRowMetrics($projectPath . '/config'),
                 'countedPath' => $this->resolveCountedMiscPath($projectPath . '/config', $normalizedProjectPath),
             ],
             [
                 'identifier' => 'var',
                 'labelKey' => 'misc.var',
                 'label' => null,
-                'bytes' => $this->getPathSize($projectPath . '/var'),
+                ...$this->createMiscRowMetrics($projectPath . '/var'),
                 'countedPath' => $this->resolveCountedMiscPath($projectPath . '/var', $normalizedProjectPath),
             ],
             [
                 'identifier' => 'publicTypo3temp',
                 'labelKey' => 'misc.publicTypo3temp',
                 'label' => null,
-                'bytes' => $this->getPathSize($publicPath . '/typo3temp'),
+                ...$this->createMiscRowMetrics($publicPath . '/typo3temp'),
                 'countedPath' => $this->resolveCountedMiscPath($publicPath . '/typo3temp', $normalizedProjectPath),
             ],
         ];
@@ -230,11 +246,15 @@ final class SizeOverviewCalculator
                 'labelKey' => null,
                 'label' => $additionalFolder['label'],
                 'bytes' => $additionalFolder['bytes'],
+                'fileCount' => $additionalFolder['fileCount'],
+                'dirCount' => $additionalFolder['dirCount'],
                 'countedPath' => $additionalFolder['countedPath'],
             ];
         }
 
         $totalBytes = $projectRootFilesBytes;
+        $totalFileCount = $projectRootFilesCount;
+        $totalDirCount = 0;
         $countedPaths = [];
         foreach ($rows as $row) {
             if (null !== $row['countedPath']) {
@@ -242,22 +262,33 @@ final class SizeOverviewCalculator
             }
         }
         foreach ($this->getNonOverlappingPaths(array_keys($countedPaths)) as $countedPath) {
-            $totalBytes += $this->getPathSize($countedPath);
+            $metrics = $this->getFilesystemMetrics($countedPath);
+            $totalBytes += $metrics['bytes'];
+            $totalFileCount += $metrics['fileCount'];
+            $totalDirCount += $metrics['dirCount'];
         }
 
         $rows = array_map(
-            fn (array $row): array => $this->createBreakdownRow($row['identifier'], $row['bytes'], $totalBytes, $row['labelKey'], $row['label']),
+            fn (array $row): array => $this->createBreakdownRow(
+                $row['identifier'],
+                $row['bytes'],
+                $totalBytes,
+                $row['labelKey'],
+                $row['label'],
+                $row['fileCount'],
+                $row['dirCount'],
+            ),
             $rows,
         );
 
         return [
             'rows' => $rows,
-            'total' => $this->createByteValue($totalBytes),
+            'total' => $this->createFilesystemSummaryValue($totalBytes, $totalFileCount, $totalDirCount),
         ];
     }
 
     /**
-     * @return list<array{label: string, bytes: int, countedPath: string|null}>
+     * @return list<array{label: string, bytes: int, fileCount: int, dirCount: int, countedPath: string|null}>
      */
     private function getConfiguredAdditionalMiscFolders(string $normalizedProjectPath): array
     {
@@ -288,10 +319,13 @@ final class SizeOverviewCalculator
             if (null !== $resolvedPath && !$this->isPathWithinBasePath($resolvedPath, $normalizedProjectPath)) {
                 continue;
             }
+            $metrics = $this->getFilesystemMetrics($absolutePath);
 
             $folders[] = [
                 'label' => $relativePath,
-                'bytes' => $this->getPathSize($absolutePath),
+                'bytes' => $metrics['bytes'],
+                'fileCount' => $metrics['fileCount'],
+                'dirCount' => $metrics['dirCount'],
                 'countedPath' => $resolvedPath,
             ];
         }
@@ -342,7 +376,7 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{bytes: int|null, fileCount: int|null, label: string, paths: list<string>}
+     * @return array{bytes: int|null, fileCount: int|null, dirCount: int|null, label: string, paths: list<string>}
      */
     private function getStorageMeasurement(ResourceStorage $storage): array
     {
@@ -352,25 +386,27 @@ final class SizeOverviewCalculator
 
         try {
             if (!$storage->isOnline()) {
-                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'dirCount' => null, 'paths' => []];
             }
 
             $paths = $this->getStorageMeasuredPaths($storage);
             if ([] === $paths) {
-                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+                return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'dirCount' => null, 'paths' => []];
             }
 
             $size = 0;
             $fileCount = 0;
+            $dirCount = 0;
             foreach ($paths as $path) {
                 $metrics = $this->getFilesystemStorageMetrics($path);
                 $size += $metrics['bytes'];
                 $fileCount += $metrics['fileCount'];
+                $dirCount += $metrics['dirCount'];
             }
 
-            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createByteValue($size), 'fileCount' => $fileCount, 'paths' => $paths];
+            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createByteValue($size), 'fileCount' => $fileCount, 'dirCount' => $dirCount, 'paths' => $paths];
         } catch (\Throwable) {
-            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'paths' => []];
+            return $this->storageMeasurementCache[$storage->getUid()] = [...$this->createUnavailableValue(), 'fileCount' => null, 'dirCount' => null, 'paths' => []];
         }
     }
 
@@ -416,39 +452,11 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{bytes: int, fileCount: int}
+     * @return array{bytes: int, fileCount: int, dirCount: int}
      */
     private function getFilesystemStorageMetrics(string $basePath): array
     {
-        $normalizedBasePath = $this->normalizePath($basePath) ?? rtrim($basePath, '/');
-        if (isset($this->filesystemMetricsCache[$normalizedBasePath])) {
-            return $this->filesystemMetricsCache[$normalizedBasePath];
-        }
-
-        $size = $this->getPathSize($basePath);
-        $fileCount = 0;
-        if (!is_dir($basePath) || !is_readable($basePath)) {
-            return $this->filesystemMetricsCache[$normalizedBasePath] = [
-                'bytes' => $size,
-                'fileCount' => 0,
-            ];
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST,
-        );
-
-        foreach ($iterator as $item) {
-            if ($item->isFile() && !$item->isLink()) {
-                ++$fileCount;
-            }
-        }
-
-        return $this->filesystemMetricsCache[$normalizedBasePath] = [
-            'bytes' => $size,
-            'fileCount' => $fileCount,
-        ];
+        return $this->getFilesystemMetrics($basePath);
     }
 
     /**
@@ -967,79 +975,138 @@ final class SizeOverviewCalculator
 
     private function getPathSize(string $path): int
     {
-        $resolvedPath = $this->normalizePath($path) ?? $path;
-
-        $systemMeasuredSize = $this->getPathSizeUsingSystemCommand($resolvedPath);
-        if (null !== $systemMeasuredSize) {
-            return $systemMeasuredSize;
-        }
-
-        if (is_file($resolvedPath)) {
-            return (int)filesize($resolvedPath);
-        }
-
-        if (!is_dir($resolvedPath) || !is_readable($resolvedPath)) {
-            return 0;
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($resolvedPath, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST,
-        );
-
-        $size = 0;
-        foreach ($iterator as $item) {
-            if ($item->isFile() && !$item->isLink()) {
-                $size += $item->getSize();
-            }
-        }
-
-        return $size;
+        return $this->getFilesystemMetrics($path)['bytes'];
     }
 
-    private function getPathSizeUsingSystemCommand(string $path): ?int
+    /**
+     * @return array{bytes: int, fileCount: int, dirCount: int}
+     */
+    private function getFilesystemMetrics(string $path): array
     {
-        if (!is_file($path) && !is_dir($path)) {
-            return null;
+        $resolvedPath = $this->normalizePath($path) ?? $path;
+        $normalizedPath = rtrim($resolvedPath, '/');
+        if (isset($this->filesystemMetricsCache[$normalizedPath])) {
+            return $this->filesystemMetricsCache[$normalizedPath];
         }
 
-        $commands = [
-            ['du', '-sb', $path],
-            ['du', '-sk', $path],
-        ];
+        $systemMeasuredMetrics = $this->getFilesystemMetricsUsingSystemCommand($resolvedPath);
+        if (null !== $systemMeasuredMetrics) {
+            return $this->filesystemMetricsCache[$normalizedPath] = $systemMeasuredMetrics;
+        }
 
-        foreach ($commands as $command) {
+        return $this->filesystemMetricsCache[$normalizedPath] = $this->getFilesystemMetricsUsingPhp($resolvedPath);
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int, dirCount: int}|null
+     */
+    private function getFilesystemMetricsUsingSystemCommand(string $path): ?array
+    {
+        if (is_file($path) && !is_link($path)) {
             try {
-                $process = new Process($command);
+                $process = new Process(['stat', '-c', '%s', $path]);
                 $process->setTimeout(10);
                 $process->run();
-
                 if (!$process->isSuccessful()) {
-                    continue;
+                    return null;
                 }
 
                 $output = trim($process->getOutput());
-                if ('' === $output) {
-                    continue;
+                if (!ctype_digit($output)) {
+                    return null;
                 }
 
-                $firstColumn = preg_split('/\s+/', $output)[0] ?? null;
-                if (!is_string($firstColumn) || !ctype_digit($firstColumn)) {
-                    continue;
-                }
-
-                $value = (int)$firstColumn;
-                if ('-sk' === $command[1]) {
-                    $value *= 1024;
-                }
-
-                return max(0, $value);
+                return [
+                    'bytes' => max(0, (int)$output),
+                    'fileCount' => 1,
+                    'dirCount' => 0,
+                ];
             } catch (\Throwable) {
-                continue;
+                return null;
             }
         }
 
-        return null;
+        if (!is_dir($path) || !is_readable($path)) {
+            return null;
+        }
+
+        $command = sprintf(
+            "find %s -mindepth 1 \\( -type f -printf 'f\\t%%s\\n' -o -type d -printf 'd\\t0\\n' \\) | awk 'BEGIN{bytes=0;files=0;dirs=0} $1==\"d\"{dirs++; next} $1==\"f\"{bytes+=$2; files++} END{printf \"%%d\\t%%d\\t%%d\\n\", bytes, files, dirs}'",
+            escapeshellarg($path),
+        );
+
+        try {
+            $process = Process::fromShellCommandline($command);
+            $process->setTimeout(10);
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                return null;
+            }
+
+            $output = trim($process->getOutput());
+            if (!preg_match('/^(\d+)\t(\d+)\t(\d+)$/', $output, $matches)) {
+                return null;
+            }
+
+            return [
+                'bytes' => (int)$matches[1],
+                'fileCount' => (int)$matches[2],
+                'dirCount' => (int)$matches[3],
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int, dirCount: int}
+     */
+    private function getFilesystemMetricsUsingPhp(string $path): array
+    {
+        if (is_file($path) && !is_link($path)) {
+            return [
+                'bytes' => max(0, (int)filesize($path)),
+                'fileCount' => 1,
+                'dirCount' => 0,
+            ];
+        }
+
+        if (!is_dir($path) || !is_readable($path)) {
+            return [
+                'bytes' => 0,
+                'fileCount' => 0,
+                'dirCount' => 0,
+            ];
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        $bytes = 0;
+        $fileCount = 0;
+        $dirCount = 0;
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                continue;
+            }
+            if ($item->isFile()) {
+                $bytes += $item->getSize();
+                ++$fileCount;
+                continue;
+            }
+            if ($item->isDir()) {
+                ++$dirCount;
+            }
+        }
+
+        return [
+            'bytes' => $bytes,
+            'fileCount' => $fileCount,
+            'dirCount' => $dirCount,
+        ];
     }
 
     private function normalizePath(string $path): ?string
@@ -1064,9 +1131,9 @@ final class SizeOverviewCalculator
     }
 
     /**
-     * @return array{identifier: string, labelKey: string|null, label: string, bytes: int, sizeLabel: string, percentage: float}
+     * @return array{identifier: string, labelKey: string|null, label: string, bytes: int, fileCount: int, dirCount: int, sizeLabel: string, percentage: float}
      */
-    private function createBreakdownRow(string $identifier, int $bytes, int $totalBytes, ?string $labelKey = null, ?string $label = null): array
+    private function createBreakdownRow(string $identifier, int $bytes, int $totalBytes, ?string $labelKey = null, ?string $label = null, int $fileCount = 0, int $dirCount = 0): array
     {
         $resolvedLabel = $label ?? (null !== $labelKey ? $this->translate($labelKey) : '');
 
@@ -1075,12 +1142,40 @@ final class SizeOverviewCalculator
             'labelKey' => $labelKey,
             'label' => $resolvedLabel,
             'bytes' => $bytes,
+            'fileCount' => $fileCount,
+            'dirCount' => $dirCount,
             'sizeLabel' => sprintf(
                 '%s (%s)',
                 $this->formatBytes($bytes),
                 $this->formatPercentage($bytes, $totalBytes),
             ),
             'percentage' => $totalBytes > 0 ? ($bytes / $totalBytes * 100) : 0.0,
+        ];
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int, dirCount: int, label: string}
+     */
+    private function createFilesystemSummaryValue(int $bytes, int $fileCount, int $dirCount): array
+    {
+        return [
+            ...$this->createByteValue($bytes),
+            'fileCount' => $fileCount,
+            'dirCount' => $dirCount,
+        ];
+    }
+
+    /**
+     * @return array{bytes: int, fileCount: int, dirCount: int}
+     */
+    private function createMiscRowMetrics(string $path): array
+    {
+        $metrics = $this->getFilesystemMetrics($path);
+
+        return [
+            'bytes' => $metrics['bytes'],
+            'fileCount' => $metrics['fileCount'],
+            'dirCount' => $metrics['dirCount'],
         ];
     }
 

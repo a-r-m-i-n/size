@@ -493,6 +493,18 @@
     padding-bottom: 0.2rem;
 }
 
+.size-storage-table th:first-child,
+.size-storage-table td:first-child {
+    width: 100%;
+}
+
+.size-storage-table th:not(:first-child),
+.size-storage-table td:not(:first-child) {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+    white-space: nowrap;
+}
+
 .size-storage-table th:last-child,
 .size-storage-table td:last-child,
 .size-storage-table th:nth-last-child(2),
