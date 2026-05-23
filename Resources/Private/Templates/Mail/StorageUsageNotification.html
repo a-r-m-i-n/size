@@ -7,6 +7,24 @@
         <h4>{introduction}</h4>
     </f:if>
     <table class="statistics" role="presentation">
+        <f:if condition="{siteName}">
+            <tr>
+                <th align="left"><f:translate key="mail.storageUsage.label.siteName" extensionName="size" /></th>
+                <td>{siteName}</td>
+            </tr>
+        </f:if>
+        <f:if condition="{siteUrl}">
+            <tr>
+                <th align="left"><f:translate key="mail.storageUsage.label.siteUrl" extensionName="size" /></th>
+                <td>{siteUrl}</td>
+            </tr>
+        </f:if>
+        <f:if condition="{serverIp}">
+            <tr>
+                <th align="left"><f:translate key="mail.storageUsage.label.serverIp" extensionName="size" /></th>
+                <td>{serverIp}</td>
+            </tr>
+        </f:if>
         <tr>
             <th align="left"><f:translate key="mail.storageUsage.label.type" extensionName="size" /></th>
             <td>{notificationType}</td>

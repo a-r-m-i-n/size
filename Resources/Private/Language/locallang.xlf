@@ -255,6 +255,15 @@
             <trans-unit id="mail.storageUsage.label.type">
                 <source>Notification type</source>
             </trans-unit>
+            <trans-unit id="mail.storageUsage.label.siteName">
+                <source>Site name</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.siteUrl">
+                <source>URL</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.label.serverIp">
+                <source>Server IP</source>
+            </trans-unit>
             <trans-unit id="mail.storageUsage.label.percentage">
                 <source>Usage</source>
             </trans-unit>

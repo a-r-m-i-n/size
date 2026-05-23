@@ -14,6 +14,7 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Mail\FluidEmail;
 use TYPO3\CMS\Core\Mail\MailerInterface;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Fluid\View\TemplatePaths;
 
 #[AsEventListener('size/storage-usage-notification')]
@@ -32,6 +33,7 @@ final readonly class StorageUsageNotificationListener
         private StorageUsageNotificationRegistry $notificationRegistry,
         private MailerInterface $mailer,
         private LanguageServiceFactory $languageServiceFactory,
+        private SiteFinder $siteFinder,
         LogManager $logManager,
     ) {
         $this->logger = $logManager->getLogger(__CLASS__);
@@ -116,6 +118,9 @@ final readonly class StorageUsageNotificationListener
         int $calculatedAt,
     ): array {
         try {
+            $siteName = $this->getSiteName();
+            $siteUrl = $this->getSiteUrl();
+            $serverIp = $this->getServerIp();
             $templatePaths = new TemplatePaths();
             $templatePaths->setTemplateRootPaths(array_replace(
                 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['templateRootPaths'] ?? [],
@@ -127,9 +132,9 @@ final readonly class StorageUsageNotificationListener
             $templatePaths->setPartialRootPaths($GLOBALS['TYPO3_CONF_VARS']['MAIL']['partialRootPaths'] ?? []);
             $email = new FluidEmail($templatePaths);
             $email
-                ->assign('normalizedParams', NormalizedParams::createFromServerParams($_SERVER))
+                ->assign('normalizedParams', ['siteUrl' => $siteUrl])
                 ->to(...$recipients)
-                ->subject($this->buildSubject($type, $percentage))
+                ->subject($this->buildSubject($type, $percentage, $siteName))
                 ->format(FluidEmail::FORMAT_BOTH)
                 ->setTemplate('StorageUsageNotification')
                 ->assignMultiple([
@@ -141,6 +146,9 @@ final readonly class StorageUsageNotificationListener
                     'maximumLabel' => $this->formatBytes((int)($chart['maximumBytes'] ?? 0)),
                     'calculatedAt' => $calculatedAt,
                     'calculatedAtLabel' => date('Y-m-d H:i:s', $calculatedAt),
+                    'siteName' => $siteName,
+                    'siteUrl' => $siteUrl,
+                    'serverIp' => $serverIp,
                 ]);
             $this->mailer->send($email);
             $this->notificationRegistry->storeLastSentTimestamp($type, $calculatedAt);
@@ -215,16 +223,22 @@ final readonly class StorageUsageNotificationListener
         return $percentage >= 0.0 ? $percentage : null;
     }
 
-    private function buildSubject(string $type, float $percentage): string
+    private function buildSubject(string $type, float $percentage, string $siteName): string
     {
         $subjectKey = $type === self::TYPE_FULL
             ? 'mail.storageUsage.subject.full'
             : 'mail.storageUsage.subject.warning';
 
-        return sprintf(
+        $subject = sprintf(
             $this->translate($subjectKey),
             number_format($percentage, 1, '.', '')
         );
+
+        if ($siteName === '') {
+            return $subject;
+        }
+
+        return sprintf('[%s] %s', $siteName, $subject);
     }
 
     private function buildHeadline(string $type): string
@@ -246,6 +260,48 @@ final readonly class StorageUsageNotificationListener
         return $this->languageServiceFactory
             ->createFromUserPreferences(null)
             ->sL('LLL:EXT:size/Resources/Private/Language/locallang.xlf:' . $key) ?: $key;
+    }
+
+    private function getSiteName(): string
+    {
+        return trim((string)($GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? ''));
+    }
+
+    private function getSiteUrl(): string
+    {
+        foreach ($this->siteFinder->getAllSites() as $site) {
+            $siteUrl = rtrim((string)$site->getBase(), '/') . '/';
+            if ($siteUrl !== '/') {
+                return $siteUrl;
+            }
+        }
+
+        try {
+            $normalizedParams = NormalizedParams::createFromServerParams($_SERVER);
+            if (method_exists($normalizedParams, 'getSiteUrl')) {
+                return trim((string)$normalizedParams->getSiteUrl());
+            }
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return '';
+    }
+
+    private function getServerIp(): string
+    {
+        $serverIp = trim((string)($_SERVER['SERVER_ADDR'] ?? $_SERVER['LOCAL_ADDR'] ?? ''));
+        if ($serverIp === '') {
+            $hostname = gethostname();
+            if (is_string($hostname) && $hostname !== '') {
+                $resolvedAddress = gethostbyname($hostname);
+                if ($resolvedAddress !== $hostname) {
+                    $serverIp = trim($resolvedAddress);
+                }
+            }
+        }
+
+        return filter_var($serverIp, FILTER_VALIDATE_IP) !== false ? $serverIp : '';
     }
 
     private function formatBytes(int $bytes): string
