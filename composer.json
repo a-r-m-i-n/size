@@ -25,6 +25,7 @@
         "typo3/cms-backend": "^13.4 || ^14.3"
     },
     "require-dev": {
+        "ext-zip": "*",
         "typo3/cms-dashboard": "^13.4 || ^14.3",
         "typo3/cms-scheduler": "^13.4 || ^14.3",
         "armin/editorconfig-cli": "^2.2.1",
@@ -68,6 +69,7 @@
         "editorconfig:fix": "ec -unvf -e public/assets -e var -e tmp",
         "phpcs": "php-cs-fixer fix --config .build/php-cs-rules.php --ansi --verbose --diff --dry-run",
         "phpcs:fix": "php-cs-fixer fix --config .build/php-cs-rules.php --ansi",
-        "phpstan": "phpstan analyse -c .build/phpstan.neon"
+        "phpstan": "phpstan analyse -c .build/phpstan.neon",
+        "ter": "php .build/create-ter-zip.php"
     }
 }
