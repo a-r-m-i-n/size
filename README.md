@@ -1,136 +1,46 @@
-# EXT:size 
+# EXT:size
+
+## Intro
 
 TYPO3 CMS extension to display TYPO3 CMS storage usage information in the backend.
 
-The extension provides:
+`size` gives editors and administrators a fast overview of project storage usage in TYPO3.
 
-- a backend toolbar item with storage totals
-- a dashboard widget
-- an extended backend module with a visual storage overview
-- a backend-module table with the 10 largest FAL files, including path and usage count
-- a persisted storage snapshot, so regular backend page loads do not trigger an expensive recalculation
-- a PSR-14 event before the snapshot is stored, so listeners can adjust the calculated overview
-- a manual refresh action in the backend module
-- a CLI command for Scheduler or manual execution
-- optional warning/full email notifications when a configured storage limit is exceeded
+![Backend module overview](Documentation/Images/ModuleHeader.png)
 
-## PSR-14 Events
+## Features
 
-The extension exposes several PSR-14 events for adjusting collected filesystem paths before size calculation continues.
+- backend module with storage distribution for `Media`, `Database`, `Code`, and `Misc`
+- dashboard widget and backend toolbar item based on the same snapshot data
+- table with the 10 largest FAL files, including path and usage count
+- CLI command and TYPO3 Scheduler support via `size:refresh`
+- configurable total storage limit with percentage display
+- warning and full email notifications
+- PSR-14 extensibility for collected paths and snapshot manipulation
 
-Listeners can read the current payload and replace it completely by assigning a new array to the public `paths` property.
+![Dashboard widget](Documentation/Images/DashboardWidget.png)
 
-### `T3\Size\Event\CodePathsCollectedEvent`
+For PSR-14 events, payload details, and a listener example, see [Documentation/EventListeners.md](Documentation/EventListeners.md).
 
-Dispatched after code paths from Composer and classic extensions have been collected and before filesystem metrics are calculated.
+## Requirements
 
-`$event->paths` contains:
+- PHP `^8.2`
+- TYPO3 `^13.4` or `^14.3`
+- TYPO3 system extensions "dashboard" and "scheduler" for full feature usage
 
-- `list<array{group: string, path: string}>`
+## Installation
 
-The `group` value is one of `vendor`, `extensions`, or `dependencies`.
+Install the extension via Composer:
 
-### `T3\Size\Event\AdditionalMiscPathsCollectedEvent`
-
-Dispatched after configured additional `Misc` folders have been resolved and before their metrics are calculated.
-
-`$event->paths` contains:
-
-- `list<string>` with filesystem paths
-
-Additional context:
-
-- `$event->projectPath` contains the normalized TYPO3 project path
-
-### `T3\Size\Event\StoragePathsCollectedEvent`
-
-Dispatched for each FAL storage after local base paths have been collected and before storage metrics are calculated.
-
-`$event->paths` contains:
-
-- `list<string>` with filesystem paths
-
-Additional context:
-
-- `$event->storage` contains the current `ResourceStorage`
-
-### `T3\Size\Event\StorageProcessingPathsCollectedEvent`
-
-Dispatched for each FAL storage after local processing / processed-image paths have been collected and before processed-image metrics are calculated.
-
-`$event->paths` contains:
-
-- `list<string>` with filesystem paths
-
-Additional context:
-
-- `$event->storage` contains the current `ResourceStorage`
-
-### Listener Example
-
-The following listener replaces the collected additional `Misc` paths completely:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace Vendor\SitePackage\EventListener;
-
-use T3\Size\Event\AdditionalMiscPathsCollectedEvent;
-
-final class ReplaceAdditionalMiscPathsListener
-{
-    public function __invoke(AdditionalMiscPathsCollectedEvent $event): void
-    {
-        $event->paths = [
-            $event->projectPath . '/packages',
-            $event->projectPath . '/Build/cache',
-        ];
-    }
-}
+```bash
+composer require t3/size
 ```
 
-The existing `T3\Size\Event\BeforeSizeOverviewSnapshotStoredEvent` remains available and is still dispatched immediately before the calculated snapshot is stored.
+After installation:
 
-## How It Works
-
-The toolbar item, dashboard widget, and backend module read the latest persisted storage snapshot.
-
-Storage statistics are not recalculated while rendering these views.
-
-Instead, the snapshot is updated explicitly:
-
-- in the backend module via the `Recalculate` action
-- on the command line via `size:refresh`
-- via TYPO3 Scheduler by using the same command
-
-If no snapshot exists yet, the UI renders placeholder values until the first refresh has been executed.
-
-The storage snapshot contains:
-
-- the calculated overview data
-- the timestamp of the last successful calculation
-- the runtime of the last successful calculation
-
-To avoid duplicate expensive runs, refreshes are protected by a TYPO3 lock. If another refresh is already running, a second one is skipped.
-
-## Backend Module
-
-The backend module shows:
-
-- a colored storage distribution bar for the main categories `Media`, `Database`, `Code`, and `Misc`
-- the age of the last successful calculation
-- for backend administrators, the runtime of the last successful calculation
-- for backend administrators, the notification result of the last refresh check
-- an indicator if a recalculation is currently running
-- for backend administrators, a `Recalculate` action next to the update metadata
-
-The `Misc` category includes files in the project root as well as the `config`, `var`, and `public/typo3temp` directories.
-
-Additional project folders can be configured and are then shown as separate rows in the `Misc` breakdown. Their sizes are included in the `Misc` total and therefore also in the chart and overall `Total`.
-
-## CLI / Scheduler
+1. activate the extension in TYPO3 if required by your setup
+2. execute the database/schema updates suggested by TYPO3
+3. optionally add `size:refresh` as a Scheduler job
 
 The extension provides the Symfony command:
 
@@ -138,19 +48,13 @@ The extension provides the Symfony command:
 php vendor/bin/typo3 size:refresh
 ```
 
-This command:
-
-- recalculates the storage snapshot
-- stores the new result persistently
-- exits with a non-success status if another refresh is already running
-
-This makes it suitable for TYPO3 Scheduler jobs.
+Use this command manually or in TYPO3 Scheduler jobs to refresh the size overview.
 
 ## Configuration
 
 ### `maximumTotalStorage`
 
-The optional extension setting `maximumTotalStorage` can be used to define a limit for the total value shown in the backend toolbar dropdown and module visualization.
+Defines the expected total capacity for the measured project storage and enables percentage display in the backend.
 
 Examples:
 
@@ -160,25 +64,17 @@ Examples:
 
 If set, the total section is rendered like `Total: 165.32 MB / 250 MB (66.1%)`.
 
-If `maximumTotalStorage` is not set, the module visualization always renders the bar fully filled and scales the category segments relative to the currently measured total.
-
 ### `warningNotificationRecipients`
 
-Optional comma- or line-separated email addresses that receive a warning mail when the measured total is above `90%` and below `100%` of `maximumTotalStorage`.
-
-Each warning notification has a cooldown of 7 days.
+Comma- or line-separated email addresses that receive a warning mail when the measured total is above `90%` and below `100%` of `maximumTotalStorage`.
 
 ### `fullNotificationRecipients`
 
-Optional comma- or line-separated email addresses that receive a full mail when the measured total is at or above `100%` of `maximumTotalStorage`.
-
-Each full notification has a separate cooldown of 7 days.
-
-If an email address is configured in both recipient lists and the usage is at or above `100%`, it only receives the full notification.
+Comma- or line-separated email addresses that receive a full mail when the measured total is at or above `100%` of `maximumTotalStorage`.
 
 ### `additionalMiscFolders`
 
-Optional comma- or line-separated relative project paths that should be measured as additional `Misc` rows.
+Comma- or line-separated relative project paths that should be measured as additional `Misc` rows.
 
 Examples:
 
@@ -186,6 +82,4 @@ Examples:
 - `public/uploads`
 - `Build/cache`
 
-Configured paths must point into the TYPO3 project directory. Existing paths are normalized via `realpath()`, and symlink targets outside the project are ignored. Missing paths stay visible in the `Misc` table with `0 B`.
-
-The manual backend-module refresh is restricted to backend administrators. Non-admin users still see the last update timestamp and refresh status, but they do not see the runtime or the `Recalculate` action. The CLI command `size:refresh` remains available regardless of backend permissions.
+Configured paths must point into the TYPO3 project directory.
