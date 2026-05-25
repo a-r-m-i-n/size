@@ -12,6 +12,7 @@ TYPO3 CMS extension to display TYPO3 CMS storage usage information in the backen
 
 - backend module with storage distribution for `Media`, `Database`, `Code`, and `Misc`
 - dashboard widget and backend toolbar item based on the same snapshot data
+- optional history with 31 daily, 12 weekly, and 12 monthly aggregated checkpoints
 - table with the 10 largest FAL files, including path and usage count
 - CLI command and TYPO3 Scheduler support via `size:refresh`
 - configurable total storage limit with percentage display
@@ -83,3 +84,15 @@ Examples:
 - `Build/cache`
 
 Configured paths must point into the TYPO3 project directory.
+
+### `enableHistory`
+
+Default: enabled.
+
+Stores aggregated checkpoints for `Media`, `Database`, `Code`, `Misc`, and `Total` in `sys_registry` during recalculation. The extension keeps:
+
+- 31 daily checkpoints
+- 12 completed ISO weeks
+- 12 completed calendar months
+
+If disabled, no history entries are written and the week/month comparison UI is hidden.

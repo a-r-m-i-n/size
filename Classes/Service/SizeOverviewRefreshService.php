@@ -18,6 +18,7 @@ final readonly class SizeOverviewRefreshService
         private LockFactory $lockFactory,
         private SizeOverviewCalculator $sizeOverviewCalculator,
         private SizeOverviewSnapshotStorage $snapshotStorage,
+        private StorageStatisticsHistoryService $historyService,
         private EventDispatcherInterface $eventDispatcher,
     ) {
     }
@@ -43,6 +44,7 @@ final readonly class SizeOverviewRefreshService
             $event = new BeforeSizeOverviewSnapshotStoredEvent($overview, $calculatedAt, $durationMs);
             $this->eventDispatcher->dispatch($event);
             $this->snapshotStorage->storeSnapshot($event->getOverview(), $calculatedAt, $durationMs);
+            $this->historyService->storeOverviewSnapshot($event->getOverview(), $calculatedAt);
 
             return RefreshResult::refreshed($calculatedAt, $durationMs);
         } finally {

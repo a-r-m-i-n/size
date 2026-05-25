@@ -1,0 +1,162 @@
+<html xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers" xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:layout name="Module" />
+
+<f:section name="Content">
+<f:asset.css identifier="size-storage-statistics" href="EXT:size/Resources/Public/Css/StorageStatistics.css" />
+<f:asset.script identifier="size-storage-statistics-reset" src="EXT:size/Resources/Public/JavaScript/StorageStatisticsReset.js" type="module" />
+
+<div class="size-storage-module">
+    <f:if condition="{isAdminUser}">
+        <form id="{resetHistoryFormId}" action="{resetHistoryActionUrl}" method="post" class="size-storage-hidden-form">
+            <input type="hidden" name="formToken" value="{resetHistoryFormToken}" />
+        </form>
+    </f:if>
+
+    <div class="size-storage-layout">
+        <section class="size-storage-card size-storage-history-hero">
+            <div class="size-storage-history-topline">
+                <div>
+                    <p class="size-storage-kicker"><f:translate key="module.storageStatistics.kicker" extensionName="size" /></p>
+                    <h1 class="size-storage-title"><f:translate key="module.storageStatistics.history.title" extensionName="size" /></h1>
+                    <div class="size-storage-meta">
+                        <span class="size-storage-meta-item">
+                            <strong><f:translate key="module.storageStatistics.lastUpdated" extensionName="size" />:</strong>
+                            {lastUpdatedAgeLabel}
+                            <f:if condition="{lastUpdatedLabel}">
+                                <span class="size-storage-meta-detail">({lastUpdatedLabel})</span>
+                            </f:if>
+                        </span>
+                    </div>
+                </div>
+                <div class="size-storage-history-current">
+                    <span class="size-storage-total-label">{currentMetric.label}</span>
+                    <strong>{currentMetric.formattedBytes}</strong>
+                </div>
+            </div>
+
+            <f:if condition="{historyEnabled}">
+                <f:then>
+                    <div class="size-storage-history-switches">
+                        <div class="size-storage-history-switch-group">
+                            <f:for each="{metricOptions}" as="option">
+                                <a class="size-storage-history-switch {f:if(condition: option.isActive, then: 'is-active')}" href="{option.url}">{option.label}</a>
+                            </f:for>
+                        </div>
+                        <div class="size-storage-history-switch-group">
+                            <f:for each="{periodOptions}" as="option">
+                                <a class="size-storage-history-switch {f:if(condition: option.isActive, then: 'is-active')}" href="{option.url}">{option.label}</a>
+                            </f:for>
+                        </div>
+                    </div>
+
+                    <div class="size-storage-history-compare-grid">
+                        <f:for each="{selectedMetricComparisons}" as="comparison">
+                            <div class="size-storage-history-compare-card size-storage-compare-{comparison.direction}">
+                                <span class="size-storage-compare-label">{comparison.label}</span>
+                                <f:if condition="{comparison.available}">
+                                    <f:then>
+                                        <strong class="size-storage-history-compare-value">{comparison.deltaLabel}</strong>
+                                        <f:if condition="{comparison.percentageLabel}">
+                                            <span class="size-storage-history-compare-percentage">{comparison.percentageLabel}</span>
+                                        </f:if>
+                                        <span class="size-storage-history-compare-reference">{comparison.referenceLabel} ({comparison.referenceDateLabel})</span>
+                                    </f:then>
+                                    <f:else>
+                                        <span class="text-muted"><f:translate key="history.noComparison" extensionName="size" /></span>
+                                    </f:else>
+                                </f:if>
+                            </div>
+                        </f:for>
+                    </div>
+
+                    <section class="size-storage-detail-card size-storage-history-chart-card">
+                        <div>
+                            <h2 class="size-storage-detail-heading">{selectedPeriodData.label}</h2>
+                            <p class="size-storage-reset-description">{selectedPeriodData.metricLabel}</p>
+                        </div>
+
+                        <f:if condition="{selectedPeriodData.hasItems}">
+                            <f:then>
+                                <div class="size-storage-history-chart-wrap">
+                                    <svg class="size-storage-history-chart" viewBox="{selectedPeriodData.chart.viewBox}" role="img" aria-label="{selectedPeriodData.metricLabel}">
+                                        <f:for each="{selectedPeriodData.chart.gridLines}" as="line">
+                                            <line class="size-storage-history-grid-line" x1="24" y1="{line.y}" x2="936" y2="{line.y}"></line>
+                                            <text class="size-storage-history-grid-label" x="24" y="{line.labelY}">{line.label}</text>
+                                        </f:for>
+                                        <polygon class="size-storage-history-area" points="{selectedPeriodData.chart.areaPoints}"></polygon>
+                                        <polyline class="size-storage-history-line" points="{selectedPeriodData.chart.polylinePoints}"></polyline>
+                                        <f:for each="{selectedPeriodData.chart.valueLabels}" as="label">
+                                            <text class="size-storage-history-value-label" x="{label.x}" y="{label.y}">{label.label}</text>
+                                        </f:for>
+                                        <f:for each="{selectedPeriodData.chart.labels}" as="label">
+                                            <text class="size-storage-history-axis-label" x="{label.x}" y="{label.y}">{label.label}</text>
+                                        </f:for>
+                                    </svg>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-sm size-storage-table size-storage-history-table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col"><f:translate key="history.table.period" extensionName="size" /></th>
+                                                <th scope="col" class="text-end"><f:translate key="section.fileadmin" extensionName="size" /></th>
+                                                <th scope="col" class="text-end"><f:translate key="section.database" extensionName="size" /></th>
+                                                <th scope="col" class="text-end"><f:translate key="section.code" extensionName="size" /></th>
+                                                <th scope="col" class="text-end"><f:translate key="section.misc" extensionName="size" /></th>
+                                                <th scope="col" class="text-end"><f:translate key="section.total" extensionName="size" /></th>
+                                                <th scope="col"><f:translate key="history.table.recordedAt" extensionName="size" /></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <f:for each="{selectedPeriodData.items}" as="item">
+                                                <tr>
+                                                    <td>{item.periodLabel}</td>
+                                                    <td class="text-end">{item.mediaLabel}</td>
+                                                    <td class="text-end">{item.databaseLabel}</td>
+                                                    <td class="text-end">{item.codeLabel}</td>
+                                                    <td class="text-end">{item.miscLabel}</td>
+                                                    <td class="text-end"><strong>{item.totalLabel}</strong></td>
+                                                    <td>{item.recordedAtLabel}</td>
+                                                </tr>
+                                            </f:for>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </f:then>
+                            <f:else>
+                                <p class="text-muted"><f:translate key="history.empty" extensionName="size" /></p>
+                            </f:else>
+                        </f:if>
+                    </section>
+                </f:then>
+                <f:else>
+                    <p class="text-muted"><f:translate key="history.disabled" extensionName="size" /></p>
+                </f:else>
+            </f:if>
+        </section>
+
+        <f:if condition="{isAdminUser}">
+            <section class="size-storage-detail-card size-storage-full-width-card size-storage-reset-card">
+                <div class="size-storage-reset-copy">
+                    <p class="size-storage-kicker"><f:translate key="module.storageStatistics.history.resetKicker" extensionName="size" /></p>
+                    <h3 class="size-storage-detail-heading size-storage-reset-heading"><span><f:translate key="module.storageStatistics.history.resetTitle" extensionName="size" /></span></h3>
+                    <p class="size-storage-reset-description"><f:translate key="module.storageStatistics.history.resetDescription" extensionName="size" /></p>
+                </div>
+                <button
+                    type="button"
+                    class="btn btn-warning size-storage-reset-button"
+                    data-size-reset-trigger="1"
+                    data-size-reset-form-id="{resetHistoryFormId}"
+                    data-size-reset-modal-title="{resetHistoryModalTitle}"
+                    data-size-reset-modal-message="{resetHistoryModalMessage}"
+                    data-size-reset-modal-confirm="{resetHistoryModalConfirmLabel}"
+                    data-size-reset-modal-cancel="{resetHistoryModalCancelLabel}"
+                >
+                    <f:translate key="module.storageStatistics.history.resetButton" extensionName="size" />
+                </button>
+            </section>
+        </f:if>
+    </div>
+</div>
+</f:section>
+</html>

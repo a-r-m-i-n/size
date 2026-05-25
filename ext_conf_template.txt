@@ -13,3 +13,7 @@ fullNotificationRecipients =
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders
 # description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders.description
 additionalMiscFolders =
+
+# cat=basic; type=boolean; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory
+# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory.description
+enableHistory = 1

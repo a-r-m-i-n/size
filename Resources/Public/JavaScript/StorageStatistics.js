@@ -1,9 +1,12 @@
 (function () {
     'use strict';
 
+    const comparisonStorageKey = 't3-size-storage-comparison-period';
     const moduleElement = document.querySelector('.size-storage-module');
     const sortableTables = document.querySelectorAll('[data-sortable-table]');
     const scrollTopButton = document.querySelector('[data-size-scroll-top]');
+
+    initializeComparisonSwitcher(moduleElement);
 
     sortableTables.forEach((table) => {
         const tbody = table.tBodies.item(0);
@@ -120,6 +123,90 @@
     function inferSortType(headers, key) {
         const matchingButton = Array.from(headers).find((button) => button.dataset.sortKey === key);
         return matchingButton?.dataset.sortType === 'number' ? 'number' : 'text';
+    }
+
+    function initializeComparisonSwitcher(container) {
+        if (!container) {
+            return;
+        }
+
+        const switcher = container.querySelector('[data-size-comparison-switcher]');
+        if (!switcher) {
+            return;
+        }
+
+        const comparisonItems = Array.from(switcher.querySelectorAll('[data-size-comparison-period]'));
+        const optionButtons = Array.from(switcher.querySelectorAll('[data-size-comparison-option]'));
+        const currentLabel = switcher.querySelector('[data-size-comparison-current-label]');
+
+        if (comparisonItems.length === 0 || optionButtons.length === 0 || !currentLabel) {
+            return;
+        }
+
+        const availablePeriods = optionButtons.map((button) => button.dataset.sizeComparisonOption).filter(Boolean);
+        if (availablePeriods.length === 0) {
+            return;
+        }
+
+        const storedPeriod = readStoredComparisonPeriod();
+        const defaultPeriod = switcher.dataset.sizeComparisonDefault || 'day';
+        const initialPeriod = resolveComparisonPeriod(storedPeriod, defaultPeriod, availablePeriods);
+
+        updateComparisonState(initialPeriod);
+
+        optionButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const period = button.dataset.sizeComparisonOption;
+                if (!period) {
+                    return;
+                }
+
+                updateComparisonState(period);
+                storeComparisonPeriod(period);
+            });
+        });
+
+        function updateComparisonState(activePeriod) {
+            comparisonItems.forEach((item) => {
+                item.classList.toggle('is-active', item.dataset.sizeComparisonPeriod === activePeriod);
+            });
+
+            optionButtons.forEach((button) => {
+                const isActive = button.dataset.sizeComparisonOption === activePeriod;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                if (isActive) {
+                    currentLabel.textContent = button.textContent || '';
+                }
+            });
+        }
+    }
+
+    function resolveComparisonPeriod(storedPeriod, defaultPeriod, availablePeriods) {
+        if (storedPeriod && availablePeriods.includes(storedPeriod)) {
+            return storedPeriod;
+        }
+        if (defaultPeriod && availablePeriods.includes(defaultPeriod)) {
+            return defaultPeriod;
+        }
+
+        return availablePeriods[0];
+    }
+
+    function readStoredComparisonPeriod() {
+        try {
+            return window.localStorage.getItem(comparisonStorageKey);
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function storeComparisonPeriod(period) {
+        try {
+            window.localStorage.setItem(comparisonStorageKey, period);
+        } catch (_error) {
+            // Ignore storage access issues in restricted browser contexts.
+        }
     }
 
     function initializeScrollTopButton(moduleElement, button) {

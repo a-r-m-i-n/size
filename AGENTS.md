@@ -76,6 +76,17 @@ ddev install-v14-classic
 ddev install-all
 ```
 
+- If an agent must write complex test or fixture data into a TYPO3 database:
+  - do not use long inline `php -r` snippets inside `ddev exec bash -lc "..."` when the code contains many `$` variables or nested quotes; shell expansion is error-prone and can silently corrupt the PHP code
+  - do not assume custom PDO credentials for direct MySQL access inside the container; prefer `ddev mysql <schema>` for database writes and reads
+  - preferred workflow:
+    1. create a temporary payload file in the workspace, for example serialized or SQL-safe content
+    2. if needed, generate that payload with a temporary PHP script file instead of inline PHP
+    3. write the payload with `ddev mysql <schema> -e "..."` targeting the explicit schema
+    4. verify the written row with a follow-up `SELECT`
+    5. remove temporary helper files afterwards
+  - if `ddev` or Docker access fails because of sandbox restrictions, request escalation immediately instead of retrying the same command shape
+
 ## Code and Structure
 
 - New PHP classes belong in `Classes/` and must follow the `T3\\Size\\...` namespace structure.

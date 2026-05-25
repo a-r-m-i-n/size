@@ -21,6 +21,7 @@ final class SizeOverviewProvider
     public function __construct(
         private readonly SizeOverviewSnapshotStorage $snapshotStorage,
         private readonly SizeOverviewRefreshService $refreshService,
+        private readonly StorageStatisticsHistoryService $historyService,
         private readonly StorageUsageNotificationRegistry $notificationRegistry,
         private readonly BackendLocalizationHelper $backendLocalizationHelper,
     ) {
@@ -36,9 +37,10 @@ final class SizeOverviewProvider
         }
 
         $snapshot = $this->snapshotStorage->getSnapshot();
-        $this->overviewCache = is_array($snapshot['overview'] ?? null)
+        $overview = is_array($snapshot['overview'] ?? null)
             ? $snapshot['overview']
             : $this->createEmptyOverview();
+        $this->overviewCache = $this->enrichOverviewWithHistory($overview);
 
         return $this->overviewCache;
     }
@@ -67,6 +69,7 @@ final class SizeOverviewProvider
             'hasSnapshot' => null !== $snapshot,
             'isRefreshRunning' => $this->refreshService->isRefreshRunning(),
             'isAdminUser' => $this->isAdminUser(),
+            'historyEnabled' => $this->historyService->isHistoryEnabled(),
         ];
 
         return $this->contextCache;
@@ -91,9 +94,18 @@ final class SizeOverviewProvider
                 'vendor' => $this->createEmptyValue($notAvailable),
                 'extensions' => $this->createEmptyValue($notAvailable),
                 'dependencies' => $this->createEmptyValue($notAvailable),
-                'total' => $this->createEmptyValue($notAvailable),
+                'total' => [
+                    ...$this->createEmptyValue($notAvailable),
+                    'summaryLabel' => $notAvailable,
+                ],
             ],
-            'misc' => $this->createEmptyValue($notAvailable),
+            'misc' => [
+                'rows' => [],
+                'total' => [
+                    ...$this->createEmptyValue($notAvailable),
+                    'summaryLabel' => $notAvailable,
+                ],
+            ],
             'chart' => [
                 'categories' => [
                     $this->createEmptyChartCategory('media', 'section.fileadmin', 'size-storage-color-media', $notAvailable),
@@ -116,6 +128,7 @@ final class SizeOverviewProvider
                     'bytes' => null,
                     'label' => $notAvailable,
                     'available' => false,
+                    'summaryLabel' => $notAvailable,
                 ],
             ],
             'mediaBreakdown' => [
@@ -131,6 +144,7 @@ final class SizeOverviewProvider
                     'bytes' => null,
                     'label' => $notAvailable,
                     'available' => false,
+                    'summaryLabel' => $notAvailable,
                 ],
             ],
             'total' => [
@@ -141,6 +155,83 @@ final class SizeOverviewProvider
                 'badgeClass' => '',
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $overview
+     *
+     * @return array<string, mixed>
+     */
+    private function enrichOverviewWithHistory(array $overview): array
+    {
+        $comparisons = $this->historyService->getComparisons($overview);
+        $totalComparisons = $comparisons['total'] ?? [];
+        $overview['comparisons'] = $comparisons;
+        $overview['total']['comparisons'] = $totalComparisons;
+        $overview['total']['comparisonOptions'] = $this->buildComparisonOptions($totalComparisons);
+        $overview['total']['hasComparisons'] = [] !== array_filter(
+            $totalComparisons,
+            static fn (mixed $comparison): bool => is_array($comparison) && (bool)($comparison['available'] ?? false)
+        );
+        $overview['total']['defaultComparisonPeriod'] = $this->resolveDefaultComparisonPeriod($overview['total']['comparisonOptions']);
+        $overview['total']['defaultComparisonLabel'] = $this->resolveDefaultComparisonLabel(
+            $overview['total']['comparisonOptions'],
+            $overview['total']['defaultComparisonPeriod']
+        );
+
+        return $overview;
+    }
+
+    /**
+     * @param array<string, mixed> $comparisons
+     *
+     * @return list<array{identifier: string, label: string, available: bool}>
+     */
+    private function buildComparisonOptions(array $comparisons): array
+    {
+        $options = [];
+        foreach (['day', 'week', 'month'] as $period) {
+            $comparison = $comparisons[$period] ?? null;
+            $options[] = [
+                'identifier' => $period,
+                'label' => is_array($comparison) ? (string)($comparison['label'] ?? '') : '',
+                'available' => is_array($comparison) && (bool)($comparison['available'] ?? false),
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * @param list<array{identifier: string, label: string, available: bool}> $options
+     */
+    private function resolveDefaultComparisonPeriod(array $options): ?string
+    {
+        foreach ($options as $option) {
+            if ($option['available']) {
+                return $option['identifier'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array{identifier: string, label: string, available: bool}> $options
+     */
+    private function resolveDefaultComparisonLabel(array $options, ?string $defaultPeriod): string
+    {
+        if (null === $defaultPeriod) {
+            return '';
+        }
+
+        foreach ($options as $option) {
+            if ($option['identifier'] === $defaultPeriod) {
+                return $option['label'];
+            }
+        }
+
+        return '';
     }
 
     /**

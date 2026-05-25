@@ -4,7 +4,7 @@
         <header/>
         <body>
             <trans-unit id="title">
-                <source>Storage usage information</source>
+                <source>EXT:size</source>
             </trans-unit>
             <trans-unit id="toolbar.description">
                 <source>Shows the current total storage usage of this TYPO3 installation.</source>
@@ -147,11 +147,26 @@
             <trans-unit id="settings.additionalMiscFolders.description">
                 <source>Optional comma- or line-separated relative project paths that should be included as separate rows in the Misc section, for example packages, public/uploads, or Build/cache.</source>
             </trans-unit>
+            <trans-unit id="settings.enableHistory">
+                <source>Enable history</source>
+            </trans-unit>
+            <trans-unit id="settings.enableHistory.description">
+                <source>Stores 31 daily snapshots plus 12 completed ISO weeks and 12 completed calendar months for aggregated storage history and week/month comparisons.</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.title">
-                <source>Extended storage statistics</source>
+                <source>Dashboard</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.breadcrumb.dashboard">
+                <source>Dashboard</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.title">
+                <source>History</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.backToOverview">
+                <source>Back to storage statistics</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.kicker">
-                <source>Storage usage overview</source>
+                <source>Extended storage statistics</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.barAriaLabel">
                 <source>Storage usage distribution by category</source>
@@ -260,6 +275,69 @@
             </trans-unit>
             <trans-unit id="module.storageStatistics.resetSuccess">
                 <source>Stored storage statistics data has been reset.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetKicker">
+                <source>Administrative history reset</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetTitle">
+                <source>Reset stored history</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetDescription">
+                <source>Deletes only the aggregated history entries. Comparison badges and the history chart remain empty until new recalculations create fresh checkpoints.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetButton">
+                <source>Reset history data</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetModalTitle">
+                <source>Reset stored history?</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetModalMessage">
+                <source>This removes only the history entries used for trend charts and week/month comparisons. Continue only if you want to clear the stored timeline.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetModalConfirmLabel">
+                <source>Reset history</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetModalCancelLabel">
+                <source>Cancel</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetRequiresAdmin">
+                <source>Only backend administrators can reset the stored history.</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.history.resetSuccess">
+                <source>Stored history data has been reset.</source>
+            </trans-unit>
+            <trans-unit id="history.compareWeek">
+                <source>Week</source>
+            </trans-unit>
+            <trans-unit id="history.compareMonth">
+                <source>Month</source>
+            </trans-unit>
+            <trans-unit id="history.compareDay">
+                <source>Yesterday</source>
+            </trans-unit>
+            <trans-unit id="history.range.day">
+                <source>31 days</source>
+            </trans-unit>
+            <trans-unit id="history.range.week">
+                <source>12 weeks</source>
+            </trans-unit>
+            <trans-unit id="history.range.month">
+                <source>12 months</source>
+            </trans-unit>
+            <trans-unit id="history.table.period">
+                <source>Period</source>
+            </trans-unit>
+            <trans-unit id="history.table.recordedAt">
+                <source>Recorded at</source>
+            </trans-unit>
+            <trans-unit id="history.empty">
+                <source>No stored history exists for the selected period yet.</source>
+            </trans-unit>
+            <trans-unit id="history.disabled">
+                <source>History storage is disabled in the extension settings.</source>
+            </trans-unit>
+            <trans-unit id="history.noComparison">
+                <source>No comparison basis available yet.</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.scrollToTop">
                 <source>Back to top</source>
