@@ -261,6 +261,9 @@
             <trans-unit id="module.storageStatistics.resetSuccess">
                 <source>Stored storage statistics data has been reset.</source>
             </trans-unit>
+            <trans-unit id="module.storageStatistics.scrollToTop">
+                <source>Back to top</source>
+            </trans-unit>
             <trans-unit id="mail.storageUsage.subject.warning">
                 <source>Storage usage warning: %s%% of the configured limit reached</source>
             </trans-unit>

@@ -214,11 +214,14 @@
         </div>
 
     <section id="size-media-breakdown" class="size-storage-detail-card size-storage-full-width-card size-storage-anchor-target">
-        <h2 class="size-storage-detail-heading">
-            <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
-                <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
+        <h2 class="size-storage-detail-heading size-storage-detail-heading-with-total">
+            <span class="size-storage-detail-heading-main">
+                <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
+                    <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.mediaBreakdown" extensionName="size" /></span>
             </span>
-            <span><f:translate key="section.mediaBreakdown" extensionName="size" /></span>
+            <span class="size-storage-detail-heading-total size-storage-detail-heading-total-media">{storages.total.summaryLabel}</span>
         </h2>
         <f:if condition="{mediaBreakdown.storages -> f:count()} > 0">
             <f:then>
@@ -313,11 +316,14 @@
     </section>
 
     <section id="size-database-tables" class="size-storage-detail-card size-storage-full-width-card size-storage-anchor-target">
-        <h2 class="size-storage-detail-heading">
-            <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
-                <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
+        <h2 class="size-storage-detail-heading size-storage-detail-heading-with-total">
+            <span class="size-storage-detail-heading-main">
+                <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
+                    <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.databaseTables" extensionName="size" /></span>
             </span>
-            <span><f:translate key="section.databaseTables" extensionName="size" /></span>
+            <span class="size-storage-detail-heading-total size-storage-detail-heading-total-database">{database.total.summaryLabel}</span>
         </h2>
         <f:if condition="{database.connections -> f:count()} > 0">
             <f:then>
@@ -451,11 +457,14 @@
     </section>
 
     <section id="size-code-breakdown" class="size-storage-detail-card size-storage-full-width-card size-storage-anchor-target">
-        <h2 class="size-storage-detail-heading">
-            <span class="size-storage-detail-icon size-storage-detail-icon-code me-1">
-                <core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" size="medium" />
+        <h2 class="size-storage-detail-heading size-storage-detail-heading-with-total">
+            <span class="size-storage-detail-heading-main">
+                <span class="size-storage-detail-icon size-storage-detail-icon-code me-1">
+                    <core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.codeBreakdown" extensionName="size" /></span>
             </span>
-            <span><f:translate key="section.codeBreakdown" extensionName="size" /></span>
+            <span class="size-storage-detail-heading-total size-storage-detail-heading-total-code">{code.total.summaryLabel}</span>
         </h2>
         <div class="table-responsive">
             <table
@@ -549,11 +558,14 @@
     </section>
 
     <section id="size-misc-breakdown" class="size-storage-detail-card size-storage-full-width-card size-storage-anchor-target">
-        <h2 class="size-storage-detail-heading">
-            <span class="size-storage-detail-icon size-storage-detail-icon-misc me-1">
-                <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="medium" />
+        <h2 class="size-storage-detail-heading size-storage-detail-heading-with-total">
+            <span class="size-storage-detail-heading-main">
+                <span class="size-storage-detail-icon size-storage-detail-icon-misc me-1">
+                    <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="medium" />
+                </span>
+                <span><f:translate key="section.miscBreakdown" extensionName="size" /></span>
             </span>
-            <span><f:translate key="section.miscBreakdown" extensionName="size" /></span>
+            <span class="size-storage-detail-heading-total size-storage-detail-heading-total-misc">{misc.total.summaryLabel}</span>
         </h2>
         <div class="table-responsive">
             <table
@@ -767,9 +779,9 @@
             <section class="size-storage-detail-card size-storage-full-width-card size-storage-reset-card">
                 <div class="size-storage-reset-copy">
                     <p class="size-storage-kicker"><f:translate key="module.storageStatistics.resetKicker" extensionName="size" /></p>
-                    <h2 class="size-storage-detail-heading size-storage-reset-heading">
+                    <h3 class="size-storage-detail-heading size-storage-reset-heading">
                         <span><f:translate key="module.storageStatistics.resetTitle" extensionName="size" /></span>
-                    </h2>
+                    </h3>
                     <p class="size-storage-reset-description">
                         <f:translate key="module.storageStatistics.resetDescription" extensionName="size" />
                     </p>
@@ -788,6 +800,16 @@
                 </button>
             </section>
         </f:if>
+
+        <button
+            type="button"
+            class="size-storage-scroll-top"
+            data-size-scroll-top
+            title="{f:translate(key: 'module.storageStatistics.scrollToTop', extensionName: 'size')}"
+            aria-label="{f:translate(key: 'module.storageStatistics.scrollToTop', extensionName: 'size')}"
+        >
+            <span>To top</span>
+        </button>
     </div>
 </div>
 </html>

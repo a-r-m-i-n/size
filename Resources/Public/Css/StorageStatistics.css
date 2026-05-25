@@ -22,6 +22,8 @@
     --size-storage-row-base: var(--typo3-surface-container-low, #eef1f5);
     --size-storage-row-base-odd: var(--typo3-surface-container-base, #e2e7ee);
     --size-storage-neutral: #68727d;
+
+    padding-bottom: 5rem;
 }
 
 .size-storage-layout {
@@ -310,8 +312,10 @@
 
 .size-storage-card-link:hover .size-storage-detail-icon,
 .size-storage-card-link:hover .size-storage-detail-total,
+.size-storage-card-link:hover .size-storage-detail-heading-total,
 .size-storage-card-link:focus-visible .size-storage-detail-icon,
 .size-storage-card-link:focus-visible .size-storage-detail-total,
+.size-storage-card-link:focus-visible .size-storage-detail-heading-total,
 .size-storage-card-link:hover .text-muted,
 .size-storage-card-link:focus-visible .text-muted {
     color: inherit;
@@ -343,6 +347,10 @@
     font-size: 1.1rem;
 }
 
+.size-storage-full-width-card h2 {
+    margin-bottom: 2rem;
+}
+
 .size-storage-anchor-target {
     scroll-margin-top: 1rem;
 }
@@ -351,6 +359,41 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.size-storage-detail-heading-with-total {
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.size-storage-detail-heading-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.size-storage-detail-heading-total {
+    margin-left: auto;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.size-storage-detail-heading-total-media {
+    color: var(--size-storage-media);
+}
+
+.size-storage-detail-heading-total-database {
+    color: var(--size-storage-database);
+}
+
+.size-storage-detail-heading-total-code {
+    color: var(--size-storage-code);
+}
+
+.size-storage-detail-heading-total-misc {
+    color: var(--size-storage-misc);
 }
 
 .size-storage-detail-icon {
@@ -419,6 +462,11 @@
     gap: 1rem;
     align-items: baseline;
     margin-bottom: 0.65rem;
+    border-bottom: 2px dotted var(--size-storage-media);
+}
+
+#size-database-tables .size-storage-connection-header {
+    border-bottom-color: var(--size-storage-database);
 }
 
 .size-storage-connection-total {
@@ -660,6 +708,68 @@
     background: var(--size-storage-available);
 }
 
+.size-storage-scroll-top {
+    position: fixed;
+    left: 1.5rem;
+    bottom: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.7rem 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(48, 52, 58, 0.5);
+    box-shadow: 0 16px 30px rgba(26, 39, 56, 0.22);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1;
+    opacity: 0;
+    transform: translateY(1rem);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    z-index: 30;
+}
+
+.size-storage-scroll-top.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.size-storage-scroll-top:hover,
+.size-storage-scroll-top:focus-visible {
+    background: rgb(48, 52, 58);
+    box-shadow: 0 20px 34px rgba(26, 39, 56, 0.28);
+}
+
+.size-storage-scroll-top:focus-visible {
+    outline: 2px solid color-mix(in srgb, #fff, var(--size-storage-database) 45%);
+    outline-offset: 2px;
+}
+
+[data-color-scheme=dark] .size-storage-scroll-top,
+[data-bs-theme=dark] .size-storage-scroll-top {
+    background: rgba(90, 96, 104, 0.55);
+}
+
+[data-color-scheme=dark] .size-storage-scroll-top:hover,
+[data-color-scheme=dark] .size-storage-scroll-top:focus-visible,
+[data-bs-theme=dark] .size-storage-scroll-top:hover,
+[data-bs-theme=dark] .size-storage-scroll-top:focus-visible {
+    background: rgb(90, 96, 104);
+}
+
+@media (prefers-color-scheme: dark) {
+    [data-color-scheme=auto] .size-storage-scroll-top {
+        background: rgba(90, 96, 104, 0.55);
+    }
+
+    [data-color-scheme=auto] .size-storage-scroll-top:hover,
+    [data-color-scheme=auto] .size-storage-scroll-top:focus-visible {
+        background: rgb(90, 96, 104);
+    }
+}
+
 @media (max-width: 900px) {
     .size-storage-card-header {
         flex-direction: column;
@@ -672,5 +782,10 @@
     .size-storage-reset-card {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .size-storage-scroll-top {
+        left: 1rem;
+        bottom: 1rem;
     }
 }

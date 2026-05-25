@@ -1,7 +1,9 @@
 (function () {
     'use strict';
 
+    const moduleElement = document.querySelector('.size-storage-module');
     const sortableTables = document.querySelectorAll('[data-sortable-table]');
+    const scrollTopButton = document.querySelector('[data-size-scroll-top]');
 
     sortableTables.forEach((table) => {
         const tbody = table.tBodies.item(0);
@@ -36,6 +38,8 @@
             });
         });
     });
+
+    initializeScrollTopButton(moduleElement, scrollTopButton);
 
     function sortTableRows(tbody, key, direction, type) {
         const rows = Array.from(tbody.rows).map((row, index) => ({
@@ -116,5 +120,56 @@
     function inferSortType(headers, key) {
         const matchingButton = Array.from(headers).find((button) => button.dataset.sortKey === key);
         return matchingButton?.dataset.sortType === 'number' ? 'number' : 'text';
+    }
+
+    function initializeScrollTopButton(moduleElement, button) {
+        if (!moduleElement || !button) {
+            return;
+        }
+
+        const scrollContainer = findScrollContainer(moduleElement);
+        const listenerTarget = scrollContainer === window ? window : scrollContainer;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        const updateVisibility = () => {
+            button.classList.toggle('is-visible', getScrollTop(scrollContainer) > 240);
+        };
+
+        listenerTarget.addEventListener('scroll', updateVisibility, {passive: true});
+        window.addEventListener('resize', updateVisibility, {passive: true});
+        button.addEventListener('click', () => {
+            const behavior = prefersReducedMotion.matches ? 'auto' : 'smooth';
+
+            if (scrollContainer === window) {
+                window.scrollTo({top: 0, behavior});
+                return;
+            }
+
+            scrollContainer.scrollTo({top: 0, behavior});
+        });
+
+        updateVisibility();
+    }
+
+    function findScrollContainer(element) {
+        let currentElement = element.parentElement;
+
+        while (currentElement) {
+            const overflowY = window.getComputedStyle(currentElement).overflowY;
+            if (/(auto|scroll|overlay)/.test(overflowY) && currentElement.scrollHeight > currentElement.clientHeight) {
+                return currentElement;
+            }
+            currentElement = currentElement.parentElement;
+        }
+
+        return window;
+    }
+
+    function getScrollTop(scrollContainer) {
+        if (scrollContainer === window) {
+            return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        }
+
+        return scrollContainer.scrollTop;
     }
 }());
