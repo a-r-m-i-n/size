@@ -40,6 +40,7 @@ final class SizeOverviewProvider
         $overview = is_array($snapshot['overview'] ?? null)
             ? $snapshot['overview']
             : $this->createEmptyOverview();
+        $overview = $this->normalizeChartViewData($overview);
         $this->overviewCache = $this->enrichOverviewWithHistory($overview);
 
         return $this->overviewCache;
@@ -118,9 +119,15 @@ final class SizeOverviewProvider
                 'totalPercentage' => 0.0,
                 'availableBytes' => null,
                 'availablePercentage' => null,
+                'availableDisplayPercentage' => null,
+                'linearAvailablePercentage' => null,
                 'availableLabel' => null,
+                'availableTitle' => null,
                 'showAvailableSegment' => false,
                 'isMaximumConfigured' => false,
+                'usesCompressedAvailableScale' => false,
+                'compressedAvailableLabel' => null,
+                'compressionNotice' => null,
             ],
             'storages' => [
                 'items' => [],
@@ -246,7 +253,7 @@ final class SizeOverviewProvider
     }
 
     /**
-     * @return array{identifier: string, label: string, bytes: int, formattedBytes: string, percentage: float, colorClass: string}
+     * @return array{identifier: string, label: string, bytes: int, formattedBytes: string, percentage: float, displayPercentage: float, linearPercentage: float, colorClass: string}
      */
     private function createEmptyChartCategory(string $identifier, string $labelKey, string $colorClass, string $notAvailable): array
     {
@@ -256,8 +263,87 @@ final class SizeOverviewProvider
             'bytes' => 0,
             'formattedBytes' => $notAvailable,
             'percentage' => 0.0,
+            'displayPercentage' => 0.0,
+            'linearPercentage' => 0.0,
             'colorClass' => $colorClass,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $overview
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeChartViewData(array $overview): array
+    {
+        $chart = $overview['chart'] ?? null;
+        if (!is_array($chart)) {
+            return $overview;
+        }
+
+        $chart['categories'] = array_map(function (mixed $category): mixed {
+            if (!is_array($category)) {
+                return $category;
+            }
+
+            $percentage = (float)($category['percentage'] ?? 0.0);
+            $category['displayPercentage'] = (float)($category['displayPercentage'] ?? $percentage);
+            $category['linearPercentage'] = (float)($category['linearPercentage'] ?? $percentage);
+
+            return $category;
+        }, is_array($chart['categories'] ?? null) ? $chart['categories'] : []);
+
+        $chart['availableDisplayPercentage'] ??= ($chart['availablePercentage'] ?? null);
+        $chart['linearAvailablePercentage'] ??= ($chart['availablePercentage'] ?? null);
+        $chart['usesCompressedAvailableScale'] = (bool)($chart['usesCompressedAvailableScale'] ?? false);
+        $chart['compressionNotice'] = null;
+        $chart['compressedAvailableLabel'] = $this->normalizeCompressedAvailableLabel($chart);
+        $chart['availableTitle'] = $this->normalizeAvailableTitle($chart);
+
+        $overview['chart'] = $chart;
+
+        return $overview;
+    }
+
+    /**
+     * @param array<string, mixed> $chart
+     */
+    private function normalizeCompressedAvailableLabel(array $chart): ?string
+    {
+        $availableLabel = $chart['availableLabel'] ?? null;
+        if (!is_string($availableLabel) || '' === $availableLabel) {
+            return null;
+        }
+
+        if (($chart['usesCompressedAvailableScale'] ?? false) !== true) {
+            return $chart['compressedAvailableLabel'] ?? $availableLabel;
+        }
+
+        return sprintf(
+            '%s (%s)',
+            $availableLabel,
+            $this->translate('module.storageStatistics.compressedAvailableLabel')
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $chart
+     */
+    private function normalizeAvailableTitle(array $chart): ?string
+    {
+        $availableLabel = $chart['availableLabel'] ?? null;
+        if (!is_string($availableLabel) || '' === $availableLabel) {
+            return null;
+        }
+
+        if (($chart['usesCompressedAvailableScale'] ?? false) === true) {
+            return sprintf(
+                $this->translate('module.storageStatistics.availableCompressedTitle'),
+                $availableLabel
+            );
+        }
+
+        return $this->translate('module.storageStatistics.available') . ': ' . $availableLabel;
     }
 
     private function formatAgeLabel(?int $timestamp): string

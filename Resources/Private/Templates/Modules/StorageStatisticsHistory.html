@@ -3,6 +3,8 @@
 
 <f:section name="Content">
 <f:asset.css identifier="size-storage-statistics" href="EXT:size/Resources/Public/Css/StorageStatistics.css" />
+<f:asset.script identifier="size-storage-chartjs" src="EXT:size/Resources/Public/JavaScript/Vendor/chart.js-4.5.0/chart.umd.min.js" />
+<f:asset.script identifier="size-storage-history-chart" src="EXT:size/Resources/Public/JavaScript/StorageStatisticsHistoryChart.js" type="module" />
 <f:asset.script identifier="size-storage-statistics-reset" src="EXT:size/Resources/Public/JavaScript/StorageStatisticsReset.js" type="module" />
 
 <div class="size-storage-module">
@@ -28,37 +30,28 @@
                         </span>
                     </div>
                 </div>
-                <div class="size-storage-history-current">
-                    <span class="size-storage-total-label">{currentMetric.label}</span>
-                    <strong>{currentMetric.formattedBytes}</strong>
+                <div class="size-storage-total">
+                    <span class="size-storage-total-label"><f:translate key="history.currentTotal" extensionName="size" /></span>
+                    <div class="size-storage-history-current-value">
+                        <strong>{currentTotal.formattedBytes}<f:if condition="{currentTotal.maximumLabel}"> / {currentTotal.maximumLabel} ({currentTotal.percentageLabel})</f:if></strong>
+                    </div>
                 </div>
             </div>
 
             <f:if condition="{historyEnabled}">
                 <f:then>
-                    <div class="size-storage-history-switches">
-                        <div class="size-storage-history-switch-group">
-                            <f:for each="{metricOptions}" as="option">
-                                <a class="size-storage-history-switch {f:if(condition: option.isActive, then: 'is-active')}" href="{option.url}">{option.label}</a>
-                            </f:for>
-                        </div>
-                        <div class="size-storage-history-switch-group">
-                            <f:for each="{periodOptions}" as="option">
-                                <a class="size-storage-history-switch {f:if(condition: option.isActive, then: 'is-active')}" href="{option.url}">{option.label}</a>
-                            </f:for>
-                        </div>
-                    </div>
-
                     <div class="size-storage-history-compare-grid">
                         <f:for each="{selectedMetricComparisons}" as="comparison">
-                            <div class="size-storage-history-compare-card size-storage-compare-{comparison.direction}">
+                            <div class="size-storage-history-compare-card">
                                 <span class="size-storage-compare-label">{comparison.label}</span>
                                 <f:if condition="{comparison.available}">
                                     <f:then>
-                                        <strong class="size-storage-history-compare-value">{comparison.deltaLabel}</strong>
-                                        <f:if condition="{comparison.percentageLabel}">
-                                            <span class="size-storage-history-compare-percentage">{comparison.percentageLabel}</span>
-                                        </f:if>
+                                        <div class="size-storage-history-compare-delta-line size-storage-history-compare-delta-line-{comparison.direction}">
+                                            <strong class="size-storage-history-compare-value">{comparison.deltaLabel}</strong>
+                                            <f:if condition="{comparison.percentageLabel}">
+                                                <span class="size-storage-history-compare-percentage">({comparison.percentageLabel})</span>
+                                            </f:if>
+                                        </div>
                                         <span class="size-storage-history-compare-reference">{comparison.referenceLabel} ({comparison.referenceDateLabel})</span>
                                     </f:then>
                                     <f:else>
@@ -70,28 +63,29 @@
                     </div>
 
                     <section class="size-storage-detail-card size-storage-history-chart-card">
-                        <div>
-                            <h2 class="size-storage-detail-heading">{selectedPeriodData.label}</h2>
-                            <p class="size-storage-reset-description">{selectedPeriodData.metricLabel}</p>
+                        <div class="size-storage-history-chart-header">
+                            <div>
+                                <h2 class="size-storage-detail-heading"><f:translate key="history.chart.title" extensionName="size" /></h2>
+                                <p class="size-storage-reset-description">{selectedPeriodData.description}</p>
+                            </div>
+                            <div class="size-storage-history-switches">
+                                <div class="size-storage-history-switch-group">
+                                    <f:for each="{periodOptions}" as="option">
+                                        <a class="size-storage-history-switch {f:if(condition: option.isActive, then: 'is-active')}" href="{option.url}">{option.label}</a>
+                                    </f:for>
+                                </div>
+                            </div>
                         </div>
 
                         <f:if condition="{selectedPeriodData.hasItems}">
                             <f:then>
                                 <div class="size-storage-history-chart-wrap">
-                                    <svg class="size-storage-history-chart" viewBox="{selectedPeriodData.chart.viewBox}" role="img" aria-label="{selectedPeriodData.metricLabel}">
-                                        <f:for each="{selectedPeriodData.chart.gridLines}" as="line">
-                                            <line class="size-storage-history-grid-line" x1="24" y1="{line.y}" x2="936" y2="{line.y}"></line>
-                                            <text class="size-storage-history-grid-label" x="24" y="{line.labelY}">{line.label}</text>
-                                        </f:for>
-                                        <polygon class="size-storage-history-area" points="{selectedPeriodData.chart.areaPoints}"></polygon>
-                                        <polyline class="size-storage-history-line" points="{selectedPeriodData.chart.polylinePoints}"></polyline>
-                                        <f:for each="{selectedPeriodData.chart.valueLabels}" as="label">
-                                            <text class="size-storage-history-value-label" x="{label.x}" y="{label.y}">{label.label}</text>
-                                        </f:for>
-                                        <f:for each="{selectedPeriodData.chart.labels}" as="label">
-                                            <text class="size-storage-history-axis-label" x="{label.x}" y="{label.y}">{label.label}</text>
-                                        </f:for>
-                                    </svg>
+                                    <canvas
+                                        class="size-storage-history-chart"
+                                        data-size-history-chart="1"
+                                        aria-label="{selectedPeriodData.metricLabel}"
+                                    ></canvas>
+                                    <script type="application/json" class="size-storage-history-chart-data">{selectedPeriodData.chartJson -> f:format.raw()}</script>
                                 </div>
 
                                 <div class="table-responsive">
@@ -111,11 +105,36 @@
                                             <f:for each="{selectedPeriodData.items}" as="item">
                                                 <tr>
                                                     <td>{item.periodLabel}</td>
-                                                    <td class="text-end">{item.mediaLabel}</td>
-                                                    <td class="text-end">{item.databaseLabel}</td>
-                                                    <td class="text-end">{item.codeLabel}</td>
-                                                    <td class="text-end">{item.miscLabel}</td>
-                                                    <td class="text-end"><strong>{item.totalLabel}</strong></td>
+                                                    <td class="text-end">
+                                                        {item.mediaLabel}
+                                                        <f:if condition="{item.mediaChange.available}">
+                                                            <span class="size-storage-history-table-change size-storage-history-table-change-{item.mediaChange.direction}">{item.mediaChange.label}</span>
+                                                        </f:if>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {item.databaseLabel}
+                                                        <f:if condition="{item.databaseChange.available}">
+                                                            <span class="size-storage-history-table-change size-storage-history-table-change-{item.databaseChange.direction}">{item.databaseChange.label}</span>
+                                                        </f:if>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {item.codeLabel}
+                                                        <f:if condition="{item.codeChange.available}">
+                                                            <span class="size-storage-history-table-change size-storage-history-table-change-{item.codeChange.direction}">{item.codeChange.label}</span>
+                                                        </f:if>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {item.miscLabel}
+                                                        <f:if condition="{item.miscChange.available}">
+                                                            <span class="size-storage-history-table-change size-storage-history-table-change-{item.miscChange.direction}">{item.miscChange.label}</span>
+                                                        </f:if>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>{item.totalLabel}</strong>
+                                                        <f:if condition="{item.totalChange.available}">
+                                                            <span class="size-storage-history-table-change size-storage-history-table-change-{item.totalChange.direction}">{item.totalChange.label}</span>
+                                                        </f:if>
+                                                    </td>
                                                     <td>{item.recordedAtLabel}</td>
                                                 </tr>
                                             </f:for>

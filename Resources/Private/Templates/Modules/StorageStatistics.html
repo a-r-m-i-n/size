@@ -135,15 +135,15 @@
                             <span
                                 class="size-storage-bar-segment {category.colorClass}"
                                 title="{category.label}: {category.formattedBytes}"
-                                style="width: {category.percentage}%"
+                                style="width: {f:if(condition: category.displayPercentage, then: category.displayPercentage, else: category.percentage)}%"
                             ></span>
                         </f:if>
                     </f:for>
                     <f:if condition="{chart.showAvailableSegment}">
                         <span
-                            class="size-storage-bar-segment size-storage-color-available"
-                            title="{f:translate(key: 'module.storageStatistics.available', extensionName: 'size')}: {chart.availableLabel}"
-                            style="width: {chart.availablePercentage}%"
+                            class="size-storage-bar-segment size-storage-color-available {f:if(condition: chart.usesCompressedAvailableScale, then: 'size-storage-color-available-compressed')}"
+                            title="{chart.availableTitle}"
+                            style="width: {f:if(condition: chart.availableDisplayPercentage, then: chart.availableDisplayPercentage, else: chart.availablePercentage)}%"
                         ></span>
                     </f:if>
                 </div>
@@ -161,10 +161,10 @@
                 </f:for>
                 <f:if condition="{chart.showAvailableSegment}">
                     <div class="size-storage-legend-item">
-                        <span class="size-storage-legend-swatch size-storage-color-available"></span>
+                        <span class="size-storage-legend-swatch size-storage-color-available {f:if(condition: chart.usesCompressedAvailableScale, then: 'size-storage-color-available-compressed')}"></span>
                         <span class="size-storage-legend-text">
                             <strong><f:translate key="module.storageStatistics.available" extensionName="size" /></strong>
-                            <span>{chart.availableLabel}</span>
+                            <span>{f:if(condition: chart.compressedAvailableLabel, then: chart.compressedAvailableLabel, else: chart.availableLabel)}</span>
                         </span>
                     </div>
                 </f:if>

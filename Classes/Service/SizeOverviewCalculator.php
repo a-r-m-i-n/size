@@ -26,6 +26,9 @@ use TYPO3\CMS\Core\Resource\StorageRepository;
 
 final class SizeOverviewCalculator
 {
+    private const COMPRESSED_AVAILABLE_THRESHOLD = 0.75;
+    private const COMPRESSED_AVAILABLE_DISPLAY_PERCENT = 10.0;
+    private const MINIMUM_VISIBLE_SEGMENT_PERCENT = 2.5;
     private const NOT_AVAILABLE = 'notAvailable';
     private const MEDIA_IMAGES = 'images';
     private const MEDIA_VIDEOS = 'videos';
@@ -55,6 +58,7 @@ final class SizeOverviewCalculator
         private readonly ConnectionPool $connectionPool,
         private readonly BackendLocalizationHelper $backendLocalizationHelper,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly MaximumTotalStorageService $maximumTotalStorageService,
         private readonly ByteFormatter $byteFormatter,
         private readonly EventDispatcherInterface $eventDispatcher,
     ) {
@@ -1369,6 +1373,8 @@ final class SizeOverviewCalculator
      *     bytes: int,
      *     formattedBytes: string,
      *     percentage: float,
+     *     displayPercentage: float,
+     *     linearPercentage: float,
      *     colorClass: string
      *   }>,
      *   maximumBytes: int|null,
@@ -1376,9 +1382,15 @@ final class SizeOverviewCalculator
      *   totalPercentage: float,
      *   availableBytes: int|null,
      *   availablePercentage: float|null,
+     *   availableDisplayPercentage: float|null,
+     *   linearAvailablePercentage: float|null,
      *   availableLabel: string|null,
+     *   availableTitle: string|null,
      *   showAvailableSegment: bool,
-     *   isMaximumConfigured: bool
+     *   isMaximumConfigured: bool,
+     *   usesCompressedAvailableScale: bool,
+     *   compressedAvailableLabel: string|null,
+     *   compressionNotice: string|null
      * }
      */
     private function createChartData(array $storages, array $database, array $code, array $misc, int $totalBytes): array
@@ -1420,6 +1432,46 @@ final class SizeOverviewCalculator
 
         $showAvailableSegment = null !== $maximumBytes && $totalBytes < $maximumBytes;
         $availableBytes = $showAvailableSegment ? $maximumBytes - $totalBytes : null;
+        $linearAvailablePercentage = null !== $availableBytes ? ($availableBytes / $visualReferenceBytes * 100) : null;
+        $usesCompressedAvailableScale = null !== $availableBytes
+            && $maximumBytes > 0
+            && ($availableBytes / $maximumBytes) > self::COMPRESSED_AVAILABLE_THRESHOLD;
+        $compressedAvailableLabel = null;
+        $availableTitle = null;
+
+        if ($usesCompressedAvailableScale) {
+            $displayUsedPercentage = $this->calculateCompressedUsedDisplayPercentage($availableBytes, $maximumBytes);
+            $displayPercentages = $this->distributeDisplayPercentages($categories, $totalBytes, $displayUsedPercentage);
+
+            foreach ($categories as $index => $category) {
+                $categories[$index]['percentage'] = $displayPercentages[$index] ?? 0.0;
+                $categories[$index]['displayPercentage'] = $categories[$index]['percentage'];
+            }
+
+            $availableDisplayPercentage = max(0.0, 100.0 - array_sum($displayPercentages));
+            $compressedAvailableLabel = sprintf(
+                '%s (%s)',
+                $this->formatBytes($availableBytes),
+                $this->translate('module.storageStatistics.compressedAvailableLabel')
+            );
+            $availableTitle = sprintf(
+                $this->translate('module.storageStatistics.availableCompressedTitle'),
+                $this->formatBytes($availableBytes)
+            );
+        } else {
+            foreach ($categories as $index => $category) {
+                $categories[$index]['displayPercentage'] = $category['percentage'];
+            }
+
+            $availableDisplayPercentage = $linearAvailablePercentage;
+            $availableTitle = null !== $availableBytes
+                ? sprintf(
+                    '%s: %s',
+                    $this->translate('module.storageStatistics.available'),
+                    $this->formatBytes($availableBytes)
+                )
+                : null;
+        }
 
         return [
             'categories' => $categories,
@@ -1427,10 +1479,16 @@ final class SizeOverviewCalculator
             'referenceBytes' => $visualReferenceBytes,
             'totalPercentage' => null !== $maximumBytes && $maximumBytes > 0 ? ($totalBytes / $maximumBytes * 100) : 100.0,
             'availableBytes' => $availableBytes,
-            'availablePercentage' => null !== $availableBytes ? ($availableBytes / $visualReferenceBytes * 100) : null,
+            'availablePercentage' => $availableDisplayPercentage,
+            'availableDisplayPercentage' => $availableDisplayPercentage,
+            'linearAvailablePercentage' => $linearAvailablePercentage,
             'availableLabel' => null !== $availableBytes ? $this->formatBytes($availableBytes) : null,
+            'availableTitle' => $availableTitle,
             'showAvailableSegment' => $showAvailableSegment,
             'isMaximumConfigured' => null !== $maximumBytes,
+            'usesCompressedAvailableScale' => $usesCompressedAvailableScale,
+            'compressedAvailableLabel' => $compressedAvailableLabel,
+            'compressionNotice' => null,
         ];
     }
 
@@ -1441,6 +1499,8 @@ final class SizeOverviewCalculator
      *   bytes: int,
      *   formattedBytes: string,
      *   percentage: float,
+     *   displayPercentage: float,
+     *   linearPercentage: float,
      *   colorClass: string
      * }
      */
@@ -1451,14 +1511,84 @@ final class SizeOverviewCalculator
         string $colorClass,
         int $referenceBytes,
     ): array {
+        $percentage = $bytes > 0 ? ($bytes / max($referenceBytes, 1) * 100) : 0.0;
+
         return [
             'identifier' => $identifier,
             'label' => $label,
             'bytes' => $bytes,
             'formattedBytes' => $this->formatBytes($bytes),
-            'percentage' => $bytes > 0 ? ($bytes / max($referenceBytes, 1) * 100) : 0.0,
+            'percentage' => $percentage,
+            'displayPercentage' => $percentage,
+            'linearPercentage' => $percentage,
             'colorClass' => $colorClass,
         ];
+    }
+
+    private function calculateCompressedUsedDisplayPercentage(int $availableBytes, int $maximumBytes): float
+    {
+        unset($availableBytes, $maximumBytes);
+
+        return 100.0 - self::COMPRESSED_AVAILABLE_DISPLAY_PERCENT;
+    }
+
+    /**
+     * @param list<array{bytes: int}> $categories
+     *
+     * @return array<int, float>
+     */
+    private function distributeDisplayPercentages(array $categories, int $totalBytes, float $targetPercentage): array
+    {
+        if ($totalBytes <= 0 || $targetPercentage <= 0) {
+            return array_fill(0, count($categories), 0.0);
+        }
+
+        $displayPercentages = array_fill(0, count($categories), 0.0);
+        $remainingIndexes = [];
+
+        foreach ($categories as $index => $category) {
+            if ($category['bytes'] > 0) {
+                $remainingIndexes[] = $index;
+            }
+        }
+
+        if ([] === $remainingIndexes) {
+            return $displayPercentages;
+        }
+
+        $minimumVisiblePercentage = min(
+            self::MINIMUM_VISIBLE_SEGMENT_PERCENT,
+            $targetPercentage / count($remainingIndexes)
+        );
+        $remainingPercentage = $targetPercentage;
+        $remainingBytes = $totalBytes;
+
+        do {
+            $fixedIndexes = [];
+            foreach ($remainingIndexes as $index) {
+                $bytes = $categories[$index]['bytes'];
+                $calculatedPercentage = $remainingBytes > 0 ? ($bytes / $remainingBytes * $remainingPercentage) : 0.0;
+                if ($calculatedPercentage < $minimumVisiblePercentage) {
+                    $displayPercentages[$index] = $minimumVisiblePercentage;
+                    $remainingPercentage -= $minimumVisiblePercentage;
+                    $remainingBytes -= $bytes;
+                    $fixedIndexes[] = $index;
+                }
+            }
+
+            if ([] === $fixedIndexes) {
+                break;
+            }
+
+            $remainingIndexes = array_values(array_diff($remainingIndexes, $fixedIndexes));
+        } while ([] !== $remainingIndexes && $remainingPercentage > 0 && $remainingBytes > 0);
+
+        foreach ($remainingIndexes as $index) {
+            $bytes = $categories[$index]['bytes'];
+            $displayPercentages[$index] = $remainingBytes > 0 ? ($bytes / $remainingBytes * $remainingPercentage) : 0.0;
+        }
+
+        return $displayPercentages;
     }
 
     private function resolveTotalStatusClass(float $percentage): string
@@ -1476,22 +1606,7 @@ final class SizeOverviewCalculator
 
     private function getConfiguredMaximumTotalStorageBytes(): ?int
     {
-        try {
-            $configuration = $this->extensionConfiguration->get('size');
-        } catch (\Throwable) {
-            return null;
-        }
-
-        if (!is_array($configuration)) {
-            return null;
-        }
-
-        $configuredValue = trim((string)($configuration['maximumTotalStorage'] ?? ''));
-        if ('' === $configuredValue) {
-            return null;
-        }
-
-        return $this->parseSizeStringToBytes($configuredValue);
+        return $this->maximumTotalStorageService->getMaximumTotalStorageBytes();
     }
 
     private function resolveCountedMiscPath(string $path, string $normalizedProjectPath): ?string
@@ -1507,36 +1622,6 @@ final class SizeOverviewCalculator
     private function isPathWithinBasePath(string $path, string $basePath): bool
     {
         return $path === $basePath || str_starts_with($path . '/', $basePath . '/');
-    }
-
-    private function parseSizeStringToBytes(string $value): ?int
-    {
-        if (!preg_match('/^\s*(\d+(?:[.,]\d+)?)\s*(B|KB|MB|GB|TB)\s*$/i', $value, $matches)) {
-            return null;
-        }
-
-        $numericValue = (float)str_replace(',', '.', $matches[1]);
-        if ($numericValue <= 0) {
-            return null;
-        }
-
-        $unit = strtoupper($matches[2]);
-        $unitMap = [
-            'B' => 0,
-            'KB' => 1,
-            'MB' => 2,
-            'GB' => 3,
-            'TB' => 4,
-        ];
-
-        $power = $unitMap[$unit] ?? null;
-        if (null === $power) {
-            return null;
-        }
-
-        $bytes = (int)round($numericValue * (1024 ** $power));
-
-        return $bytes > 0 ? $bytes : null;
     }
 
     private function formatBytes(int $bytes): string

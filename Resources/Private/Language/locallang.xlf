@@ -174,6 +174,12 @@
             <trans-unit id="module.storageStatistics.available">
                 <source>Available</source>
             </trans-unit>
+            <trans-unit id="module.storageStatistics.availableCompressedTitle">
+                <source>Available: %s (compressed display to keep used categories visible)</source>
+            </trans-unit>
+            <trans-unit id="module.storageStatistics.compressedAvailableLabel">
+                <source>compressed display</source>
+            </trans-unit>
             <trans-unit id="module.storageStatistics.unnamedStorage">
                 <source>Unnamed storage</source>
             </trans-unit>
@@ -315,6 +321,18 @@
             <trans-unit id="history.compareDay">
                 <source>Yesterday</source>
             </trans-unit>
+            <trans-unit id="history.currentTotal">
+                <source>Current total</source>
+            </trans-unit>
+            <trans-unit id="history.period.day">
+                <source>Days</source>
+            </trans-unit>
+            <trans-unit id="history.period.week">
+                <source>Weeks</source>
+            </trans-unit>
+            <trans-unit id="history.period.month">
+                <source>Months</source>
+            </trans-unit>
             <trans-unit id="history.range.day">
                 <source>31 days</source>
             </trans-unit>
@@ -338,6 +356,18 @@
             </trans-unit>
             <trans-unit id="history.noComparison">
                 <source>No comparison basis available yet.</source>
+            </trans-unit>
+            <trans-unit id="history.chart.title">
+                <source>History-Chart</source>
+            </trans-unit>
+            <trans-unit id="history.chart.description">
+                <source>Stacked total storage composition for the selected history period.</source>
+            </trans-unit>
+            <trans-unit id="history.chart.descriptionWithLimit">
+                <source>Stacked total storage composition for the selected history period. Configured limit: %s.</source>
+            </trans-unit>
+            <trans-unit id="history.chart.limitDataset">
+                <source>Configured limit</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.scrollToTop">
                 <source>Back to top</source>

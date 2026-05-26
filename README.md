@@ -65,6 +65,8 @@ Examples:
 
 If set, the total section is rendered like `Total: 165.32 MB / 250 MB (66.1%)`.
 
+If more than `50%` of the configured limit is still free, the dashboard/module bar switches to a hybrid display: used categories stay readable, while the `Available` segment is explicitly marked as compressed. The history chart keeps the configured limit as a separate reference line when values remain far below that limit.
+
 ### `warningNotificationRecipients`
 
 Comma- or line-separated email addresses that receive a warning mail when the measured total is above `90%` and below `100%` of `maximumTotalStorage`.

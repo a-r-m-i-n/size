@@ -16,6 +16,7 @@ final readonly class StorageStatisticsHistoryService
     private const RETENTION_DAYS = 31;
     private const RETENTION_WEEKS = 12;
     private const RETENTION_MONTHS = 12;
+    private const LIMIT_REFERENCE_DISPLAY_THRESHOLD = 0.9;
     /**
      * @var list<string>
      */
@@ -24,10 +25,15 @@ final readonly class StorageStatisticsHistoryService
      * @var list<string>
      */
     private const PERIODS = ['day', 'week', 'month'];
+    /**
+     * @var list<string>
+     */
+    private const CHART_METRICS = ['media', 'database', 'code', 'misc'];
 
     public function __construct(
         private Registry $registry,
         private ExtensionConfiguration $extensionConfiguration,
+        private MaximumTotalStorageService $maximumTotalStorageService,
         private ByteFormatter $byteFormatter,
         private BackendLocalizationHelper $backendLocalizationHelper,
         private UriBuilder $uriBuilder,
@@ -142,34 +148,37 @@ final readonly class StorageStatisticsHistoryService
      *
      * @return array<string, mixed>
      */
-    public function getHistoryModuleData(array $overview, string $selectedMetric, string $selectedPeriod): array
+    public function getHistoryModuleData(array $overview, string $selectedPeriod): array
     {
-        $metric = in_array($selectedMetric, self::METRICS, true) ? $selectedMetric : 'total';
         $period = in_array($selectedPeriod, self::PERIODS, true) ? $selectedPeriod : 'day';
         $history = $this->getHistory();
         $currentMetrics = $this->extractMetricsFromOverview($overview);
         $comparisons = $this->getComparisons($overview);
 
         $periodData = [
-            'day' => $this->createPeriodViewData('day', $history['days'], $metric),
-            'week' => $this->createPeriodViewData('week', $history['weeks'], $metric),
-            'month' => $this->createPeriodViewData('month', $history['months'], $metric),
+            'day' => $this->createPeriodViewData('day', $history['days']),
+            'week' => $this->createPeriodViewData('week', $history['weeks']),
+            'month' => $this->createPeriodViewData('month', $history['months']),
         ];
 
         return [
             'historyEnabled' => $this->isHistoryEnabled(),
-            'selectedMetric' => $metric,
             'selectedPeriod' => $period,
-            'metricOptions' => $this->buildMetricOptions($metric, $period),
-            'periodOptions' => $this->buildPeriodOptions($metric, $period),
-            'currentMetric' => [
-                'identifier' => $metric,
-                'label' => $this->translateMetric($metric),
-                'bytes' => $currentMetrics[$metric],
-                'formattedBytes' => $this->byteFormatter->format($currentMetrics[$metric]),
+            'periodOptions' => $this->buildPeriodOptions($period),
+            'currentTotal' => [
+                'identifier' => 'total',
+                'label' => $this->translateMetric('total'),
+                'bytes' => $currentMetrics['total'],
+                'formattedBytes' => $this->byteFormatter->format($currentMetrics['total']),
+                'maximumBytes' => (int)($overview['chart']['maximumBytes'] ?? 0),
+                'maximumLabel' => null !== ($overview['chart']['maximumBytes'] ?? null)
+                    ? $this->byteFormatter->format((int)$overview['chart']['maximumBytes'])
+                    : null,
+                'percentageLabel' => (bool)($overview['chart']['isMaximumConfigured'] ?? false)
+                    ? number_format((float)($overview['chart']['totalPercentage'] ?? 0.0), 1, '.', '') . '%'
+                    : null,
             ],
-            'selectedMetricComparisons' => $this->filterHistoryModuleComparisons($comparisons[$metric] ?? []),
-            'allMetricComparisons' => $comparisons,
+            'selectedMetricComparisons' => $this->filterHistoryModuleComparisons($comparisons['total'] ?? []),
             'dayHistory' => $periodData['day'],
             'weekHistory' => $periodData['week'],
             'monthHistory' => $periodData['month'],
@@ -385,7 +394,14 @@ final readonly class StorageStatisticsHistoryService
      */
     private function filterHistoryModuleComparisons(array $comparisons): array
     {
-        return array_intersect_key($comparisons, array_flip(['week', 'month']));
+        $orderedComparisons = [];
+        foreach (['day', 'week', 'month'] as $period) {
+            if (isset($comparisons[$period])) {
+                $orderedComparisons[$period] = $comparisons[$period];
+            }
+        }
+
+        return $orderedComparisons;
     }
 
     /**
@@ -499,49 +515,57 @@ final readonly class StorageStatisticsHistoryService
      *
      * @return array<string, mixed>
      */
-    private function createPeriodViewData(string $period, array $entries, string $metric): array
+    private function createPeriodViewData(string $period, array $entries): array
     {
         ksort($entries);
         $items = [];
+        $previousEntry = null;
         foreach ($entries as $key => $entry) {
-            $items[] = $this->createHistoryItem($period, $key, $entry, $metric);
+            $items[] = $this->createHistoryItem($period, $key, $entry, $previousEntry);
+            $previousEntry = $entry;
         }
+        $chartData = $this->buildChartData($items);
 
         return [
             'identifier' => $period,
             'label' => $this->translateHistoryRange($period),
-            'metricLabel' => $this->translateMetric($metric),
+            'metricLabel' => $this->translateMetric('total'),
+            'description' => $this->buildHistoryDescription($chartData),
             'items' => $items,
             'hasItems' => [] !== $items,
-            'chart' => $this->buildChartData($items, $metric),
+            'chart' => $chartData,
+            'chartJson' => (string)json_encode($chartData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         ];
     }
 
     /**
-     * @param array<string, int|string> $entry
+     * @param array<string, int|string>      $entry
+     * @param array<string, int|string>|null $previousEntry
      *
      * @return array<string, mixed>
      */
-    private function createHistoryItem(string $period, string $key, array $entry, string $metric): array
+    private function createHistoryItem(string $period, string $key, array $entry, ?array $previousEntry): array
     {
-        $bytes = (int)($entry[$metric] ?? 0);
-
         return [
             'identifier' => $key,
             'periodLabel' => $this->formatPeriodLabel($period, $key),
+            'axisLabel' => $this->formatChartAxisLabel($key),
             'recordedAtLabel' => date('Y-m-d H:i:s', (int)$entry['calculatedAt']),
             'media' => (int)($entry['media'] ?? 0),
             'mediaLabel' => $this->byteFormatter->format((int)($entry['media'] ?? 0)),
+            'mediaChange' => $this->createRowChangeData((int)($entry['media'] ?? 0), $previousEntry, 'media'),
             'database' => (int)($entry['database'] ?? 0),
             'databaseLabel' => $this->byteFormatter->format((int)($entry['database'] ?? 0)),
+            'databaseChange' => $this->createRowChangeData((int)($entry['database'] ?? 0), $previousEntry, 'database'),
             'code' => (int)($entry['code'] ?? 0),
             'codeLabel' => $this->byteFormatter->format((int)($entry['code'] ?? 0)),
+            'codeChange' => $this->createRowChangeData((int)($entry['code'] ?? 0), $previousEntry, 'code'),
             'misc' => (int)($entry['misc'] ?? 0),
             'miscLabel' => $this->byteFormatter->format((int)($entry['misc'] ?? 0)),
+            'miscChange' => $this->createRowChangeData((int)($entry['misc'] ?? 0), $previousEntry, 'misc'),
             'total' => (int)($entry['total'] ?? 0),
             'totalLabel' => $this->byteFormatter->format((int)($entry['total'] ?? 0)),
-            'bytes' => $bytes,
-            'formattedBytes' => $this->byteFormatter->format($bytes),
+            'totalChange' => $this->createRowChangeData((int)($entry['total'] ?? 0), $previousEntry, 'total'),
         ];
     }
 
@@ -550,107 +574,57 @@ final readonly class StorageStatisticsHistoryService
      *
      * @return array<string, mixed>
      */
-    private function buildChartData(array $items, string $metric): array
+    private function buildChartData(array $items): array
     {
-        if ([] === $items) {
-            return [
-                'viewBox' => '0 0 100 100',
-                'polylinePoints' => '',
-                'areaPoints' => '',
-                'gridLines' => [],
-                'labels' => [],
-                'valueLabels' => [],
-                'metricLabel' => $this->translateMetric($metric),
-            ];
+        $formattedValues = [];
+        foreach (self::CHART_METRICS as $metric) {
+            $formattedValues[$metric] = array_map(
+                static fn (array $item): string => (string)$item[$metric . 'Label'],
+                $items
+            );
         }
 
-        $width = 960;
-        $height = 280;
-        $paddingLeft = 24;
-        $paddingRight = 24;
-        $paddingTop = 20;
-        $paddingBottom = 40;
-        $plotWidth = $width - $paddingLeft - $paddingRight;
-        $plotHeight = $height - $paddingTop - $paddingBottom;
-        $maxValue = max(array_map(static fn (array $item): int => (int)$item['bytes'], $items));
-        $maxValue = max($maxValue, 1);
-
-        $polylinePoints = [];
-        $labelPoints = [];
-        $valueLabels = [];
-        $count = count($items);
-        foreach ($items as $index => $item) {
-            $x = 1 === $count ? $paddingLeft + (int)round($plotWidth / 2) : $paddingLeft + (int)round(($plotWidth / max(1, $count - 1)) * $index);
-            $y = $paddingTop + (int)round($plotHeight - (((int)$item['bytes'] / $maxValue) * $plotHeight));
-            $polylinePoints[] = $x . ',' . $y;
-            $labelPoints[] = [
-                'x' => $x,
-                'y' => $height - 12,
-                'label' => $this->formatChartAxisLabel((string)$item['identifier']),
-            ];
-            $valueLabels[] = [
-                'x' => $x,
-                'y' => max(16, $y - 10),
-                'label' => (string)$item['formattedBytes'],
-            ];
-        }
-
-        $gridLines = [];
-        foreach ([0, 0.25, 0.5, 0.75, 1.0] as $ratio) {
-            $value = (int)round($maxValue * (1 - $ratio));
-            $gridY = $paddingTop + (int)round($plotHeight * $ratio);
-            $gridLines[] = [
-                'y' => $gridY,
-                'labelY' => max(12, $gridY - 6),
-                'label' => $this->byteFormatter->format($value),
-            ];
-        }
+        $limitBytes = $this->maximumTotalStorageService->getMaximumTotalStorageBytes();
+        $totals = array_map(static fn (array $item): int => (int)$item['total'], $items);
+        $maxTotalBytes = [] !== $totals ? max($totals) : 0;
+        $showsLimitReference = null !== $limitBytes
+            && $limitBytes > 0
+            && ($maxTotalBytes / $limitBytes) >= self::LIMIT_REFERENCE_DISPLAY_THRESHOLD;
 
         return [
-            'viewBox' => '0 0 ' . $width . ' ' . $height,
-            'polylinePoints' => implode(' ', $polylinePoints),
-            'areaPoints' => $paddingLeft . ',' . ($height - $paddingBottom) . ' ' . implode(' ', $polylinePoints) . ' ' . ($paddingLeft + $plotWidth) . ',' . ($height - $paddingBottom),
-            'gridLines' => $gridLines,
-            'labels' => $labelPoints,
-            'valueLabels' => $valueLabels,
-            'metricLabel' => $this->translateMetric($metric),
+            'labels' => array_map(static fn (array $item): string => (string)$item['axisLabel'], $items),
+            'totals' => $totals,
+            'formattedTotals' => array_map(static fn (array $item): string => (string)$item['totalLabel'], $items),
+            'formattedValues' => $formattedValues,
+            'datasets' => [
+                $this->createChartDataset('media', 'section.fileadmin', 'var(--size-storage-media)', $items),
+                $this->createChartDataset('database', 'section.database', 'var(--size-storage-database)', $items),
+                $this->createChartDataset('code', 'section.code', 'var(--size-storage-code)', $items),
+                $this->createChartDataset('misc', 'section.misc', 'var(--size-storage-misc)', $items),
+            ],
+            'usesCompressedLimitReference' => !$showsLimitReference,
+            'compressionNotice' => null,
+            'limit' => [
+                'enabled' => $showsLimitReference,
+                'bytes' => $limitBytes,
+                'label' => null !== $limitBytes ? $this->byteFormatter->format($limitBytes) : null,
+                'datasetLabel' => $this->backendLocalizationHelper->translate('history.chart.limitDataset'),
+            ],
         ];
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    private function buildMetricOptions(string $selectedMetric, string $selectedPeriod): array
-    {
-        $items = [];
-        foreach (self::METRICS as $metric) {
-            $items[] = [
-                'identifier' => $metric,
-                'label' => $this->translateMetric($metric),
-                'isActive' => $metric === $selectedMetric,
-                'url' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics_history', [
-                    'metric' => $metric,
-                    'period' => $selectedPeriod,
-                ]),
-            ];
-        }
-
-        return $items;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function buildPeriodOptions(string $selectedMetric, string $selectedPeriod): array
+    private function buildPeriodOptions(string $selectedPeriod): array
     {
         $items = [];
         foreach (self::PERIODS as $period) {
             $items[] = [
                 'identifier' => $period,
-                'label' => $this->translateHistoryRange($period),
+                'label' => $this->translatePeriodOption($period),
                 'isActive' => $period === $selectedPeriod,
                 'url' => (string)$this->uriBuilder->buildUriFromRoute('size_storage_statistics_history', [
-                    'metric' => $selectedMetric,
                     'period' => $period,
                 ]),
             ];
@@ -687,6 +661,89 @@ final readonly class StorageStatisticsHistoryService
             'month' => $this->backendLocalizationHelper->translate('history.range.month'),
             default => $this->backendLocalizationHelper->translate('history.range.day'),
         };
+    }
+
+    private function translatePeriodOption(string $period): string
+    {
+        return match ($period) {
+            'week' => $this->backendLocalizationHelper->translate('history.period.week'),
+            'month' => $this->backendLocalizationHelper->translate('history.period.month'),
+            default => $this->backendLocalizationHelper->translate('history.period.day'),
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $chartData
+     */
+    private function buildHistoryDescription(array $chartData): string
+    {
+        $limit = is_array($chartData['limit'] ?? null) ? $chartData['limit'] : [];
+        if (($limit['enabled'] ?? false) !== true) {
+            return $this->backendLocalizationHelper->translate('history.chart.description');
+        }
+
+        return sprintf(
+            $this->backendLocalizationHelper->translate('history.chart.descriptionWithLimit'),
+            (string)($limit['label'] ?? '')
+        );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     *
+     * @return array{identifier: string, label: string, data: list<int>, backgroundColor: string}
+     */
+    private function createChartDataset(string $metric, string $labelKey, string $backgroundColor, array $items): array
+    {
+        return [
+            'identifier' => $metric,
+            'label' => $this->backendLocalizationHelper->translate($labelKey),
+            'data' => array_map(static fn (array $item): int => (int)$item[$metric], $items),
+            'backgroundColor' => $backgroundColor,
+        ];
+    }
+
+    /**
+     * @param array<string, int|string>|null $previousEntry
+     *
+     * @return array{available: bool, label: string|null, direction: string}
+     */
+    private function createRowChangeData(int $currentValue, ?array $previousEntry, string $metric): array
+    {
+        if (null === $previousEntry) {
+            return [
+                'available' => false,
+                'label' => null,
+                'direction' => 'none',
+            ];
+        }
+
+        $previousValue = (int)($previousEntry[$metric] ?? 0);
+        $delta = $currentValue - $previousValue;
+
+        if (0 === $delta) {
+            return [
+                'available' => true,
+                'label' => '(-)',
+                'direction' => 'same',
+            ];
+        }
+
+        if (0 === $previousValue) {
+            return [
+                'available' => true,
+                'label' => sprintf('(%sn/a)', $delta > 0 ? '+' : '-'),
+                'direction' => $delta > 0 ? 'up' : 'down',
+            ];
+        }
+
+        $percentage = ($delta / $previousValue) * 100;
+
+        return [
+            'available' => true,
+            'label' => sprintf('(%s)', $this->formatPercentage($percentage)),
+            'direction' => $delta > 0 ? 'up' : 'down',
+        ];
     }
 
     private function formatSignedBytes(int $value): string

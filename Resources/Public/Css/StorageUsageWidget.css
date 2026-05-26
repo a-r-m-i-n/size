@@ -184,3 +184,13 @@
 .size-storage-color-available {
     background: var(--size-storage-available);
 }
+
+.size-storage-color-available-compressed {
+    background-color: var(--size-storage-available);
+    background-image:
+        repeating-linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--size-storage-available), #fff 12%) 0 5px,
+            color-mix(in srgb, var(--size-storage-available), var(--typo3-text-color-base, #000) 10%) 5px 10px
+        );
+}

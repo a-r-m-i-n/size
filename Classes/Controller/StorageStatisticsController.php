@@ -88,9 +88,8 @@ final readonly class StorageStatisticsController
         $context = $this->sizeOverviewProvider->getOverviewContext();
         $overview = $context['overview'];
         $queryParams = $request->getQueryParams();
-        $selectedMetric = is_string($queryParams['metric'] ?? null) ? $queryParams['metric'] : 'total';
         $selectedPeriod = is_string($queryParams['period'] ?? null) ? $queryParams['period'] : 'day';
-        $historyView = $this->historyService->getHistoryModuleData($overview, $selectedMetric, $selectedPeriod);
+        $historyView = $this->historyService->getHistoryModuleData($overview, $selectedPeriod);
 
         $moduleTemplate->assignMultiple([
             ...$context,
