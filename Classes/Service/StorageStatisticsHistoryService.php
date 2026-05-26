@@ -14,8 +14,6 @@ final readonly class StorageStatisticsHistoryService
     private const REGISTRY_NAMESPACE = 'size';
     private const REGISTRY_KEY = 'storage_history';
     private const RETENTION_DAYS = 31;
-    private const RETENTION_WEEKS = 12;
-    private const RETENTION_MONTHS = 12;
     private const LIMIT_REFERENCE_DISPLAY_THRESHOLD = 0.9;
     /**
      * @var list<string>
@@ -88,8 +86,6 @@ final readonly class StorageStatisticsHistoryService
         }
 
         $history['days'] = $this->retainNewestEntries($history['days'], self::RETENTION_DAYS);
-        $history['weeks'] = $this->retainNewestEntries($history['weeks'], self::RETENTION_WEEKS);
-        $history['months'] = $this->retainNewestEntries($history['months'], self::RETENTION_MONTHS);
 
         $this->registry->set(self::REGISTRY_NAMESPACE, self::REGISTRY_KEY, $history);
     }
