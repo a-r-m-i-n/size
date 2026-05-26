@@ -172,112 +172,88 @@
         </div>
 
         <div class="size-storage-grid">
-            <section class="size-storage-detail-card">
-                <div class="size-storage-card-link size-storage-card-link-media">
-                    <a class="size-storage-card-link-anchor" href="#size-media-breakdown">
-                        <h2 class="size-storage-detail-heading">
-                            <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
-                                <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
-                            </span>
-                            <span><f:translate key="section.fileadmin" extensionName="size" /></span>
-                        </h2>
-                        <p class="size-storage-detail-total">{storages.total.summaryLabel}</p>
-                    </a>
-                    <a class="size-storage-card-link-anchor" href="#size-media-breakdown">
-                        <f:if condition="{storages.items -> f:count()} > 0">
-                            <f:then>
-                                <dl class="size-storage-detail-list">
-                                    <f:for each="{storages.items}" as="storage">
-                                        <dt>
-                                            <f:if condition="{storage.name}">
-                                                <f:then>{storage.name}</f:then>
-                                                <f:else><f:translate key="module.storageStatistics.unnamedStorage" extensionName="size" /></f:else>
-                                            </f:if>
-                                        </dt>
-                                        <dd>{storage.label}</dd>
-                                    </f:for>
-                                </dl>
-                            </f:then>
-                            <f:else>
-                                <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
-                            </f:else>
-                        </f:if>
-                    </a>
-                </div>
-            </section>
-
-            <section class="size-storage-detail-card">
-                <div class="size-storage-card-link size-storage-card-link-database">
-                    <a class="size-storage-card-link-anchor" href="#size-database-tables">
-                        <h2 class="size-storage-detail-heading">
-                            <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
-                                <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
-                            </span>
-                            <span><f:translate key="section.database" extensionName="size" /></span>
-                        </h2>
-                        <p class="size-storage-detail-total">{database.total.summaryLabel}</p>
-                    </a>
-                    <a class="size-storage-card-link-anchor" href="#size-database-tables">
-                        <f:if condition="{database.connections -> f:count()} > 0">
-                            <f:then>
-                                <dl class="size-storage-detail-list">
-                                    <f:for each="{database.connections}" as="connection">
-                                        <dt>
-                                            <span class="size-storage-connection-name">{connection.name}</span>
-                                            <span class="size-storage-connection-count">{connection.tableCountLabel}</span>
-                                        </dt>
-                                        <dd>{connection.label}</dd>
-                                    </f:for>
-                                </dl>
-                            </f:then>
-                            <f:else>
-                                <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
-                            </f:else>
-                        </f:if>
-                    </a>
-                </div>
-            </section>
-
-            <section class="size-storage-detail-card">
-                <div class="size-storage-card-link size-storage-card-link-code">
-                    <a class="size-storage-card-link-anchor" href="#size-code-breakdown">
-                        <h2 class="size-storage-detail-heading">
-                            <span class="size-storage-detail-icon size-storage-detail-icon-code me-1">
-                                <core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" size="medium" />
-                            </span>
-                            <span><f:translate key="section.code" extensionName="size" /></span>
-                        </h2>
-                        <p class="size-storage-detail-total">{code.total.summaryLabel}</p>
-                    </a>
-                    <a class="size-storage-card-link-anchor" href="#size-code-breakdown">
+            <a class="size-storage-detail-card size-storage-card-link size-storage-card-link-media" href="#size-media-breakdown">
+                <h2 class="size-storage-detail-heading">
+                    <span class="size-storage-detail-icon size-storage-detail-icon-media me-1">
+                        <core:icon identifier="actions-file-image" alternativeMarkupIdentifier="inline" size="medium" />
+                    </span>
+                    <span><f:translate key="section.fileadmin" extensionName="size" /></span>
+                </h2>
+                <p class="size-storage-detail-total">{storages.total.summaryLabel}</p>
+                <f:if condition="{storages.items -> f:count()} > 0">
+                    <f:then>
                         <dl class="size-storage-detail-list">
-                            <dt><f:translate key="code.vendor" extensionName="size" /></dt>
-                            <dd>{code.vendor.label}</dd>
-                            <dt><f:translate key="code.extensions" extensionName="size" /></dt>
-                            <dd>{code.extensions.label}</dd>
-                            <dt><f:translate key="code.dependencies" extensionName="size" /></dt>
-                            <dd>{code.dependencies.label}</dd>
+                            <f:for each="{storages.items}" as="storage">
+                                <dt>
+                                    <f:if condition="{storage.name}">
+                                        <f:then>{storage.name}</f:then>
+                                        <f:else><f:translate key="module.storageStatistics.unnamedStorage" extensionName="size" /></f:else>
+                                    </f:if>
+                                </dt>
+                                <dd>{storage.label}</dd>
+                            </f:for>
                         </dl>
-                    </a>
-                </div>
-            </section>
+                    </f:then>
+                    <f:else>
+                        <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+                    </f:else>
+                </f:if>
+            </a>
 
-            <section class="size-storage-detail-card">
-                <div class="size-storage-card-link size-storage-card-link-misc">
-                    <a class="size-storage-card-link-anchor" href="#size-misc-breakdown">
-                        <h2 class="size-storage-detail-heading">
-                            <span class="size-storage-detail-icon size-storage-detail-icon-misc me-1">
-                                <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="medium" />
-                            </span>
-                            <span><f:translate key="section.misc" extensionName="size" /></span>
-                        </h2>
-                        <p class="size-storage-detail-total">{misc.total.summaryLabel}</p>
-                    </a>
-                    <a class="size-storage-card-link-anchor" href="#size-misc-breakdown">
-                        <p class="size-storage-detail-description"><f:translate key="module.storageStatistics.miscDescription" extensionName="size" /></p>
-                    </a>
-                </div>
-            </section>
+            <a class="size-storage-detail-card size-storage-card-link size-storage-card-link-database" href="#size-database-tables">
+                <h2 class="size-storage-detail-heading">
+                    <span class="size-storage-detail-icon size-storage-detail-icon-database me-1">
+                        <core:icon identifier="actions-database" alternativeMarkupIdentifier="inline" size="medium" />
+                    </span>
+                    <span><f:translate key="section.database" extensionName="size" /></span>
+                </h2>
+                <p class="size-storage-detail-total">{database.total.summaryLabel}</p>
+                <f:if condition="{database.connections -> f:count()} > 0">
+                    <f:then>
+                        <dl class="size-storage-detail-list">
+                            <f:for each="{database.connections}" as="connection">
+                                <dt>
+                                    <span class="size-storage-connection-name">{connection.name}</span>
+                                    <span class="size-storage-connection-count">{connection.tableCountLabel}</span>
+                                </dt>
+                                <dd>{connection.label}</dd>
+                            </f:for>
+                        </dl>
+                    </f:then>
+                    <f:else>
+                        <p class="text-muted"><f:translate key="notAvailable" extensionName="size" /></p>
+                    </f:else>
+                </f:if>
+            </a>
+
+            <a class="size-storage-detail-card size-storage-card-link size-storage-card-link-code" href="#size-code-breakdown">
+                <h2 class="size-storage-detail-heading">
+                    <span class="size-storage-detail-icon size-storage-detail-icon-code me-1">
+                        <core:icon identifier="actions-code" alternativeMarkupIdentifier="inline" size="medium" />
+                    </span>
+                    <span><f:translate key="section.code" extensionName="size" /></span>
+                </h2>
+                <p class="size-storage-detail-total">{code.total.summaryLabel}</p>
+                <dl class="size-storage-detail-list">
+                    <dt><f:translate key="code.vendor" extensionName="size" /></dt>
+                    <dd>{code.vendor.label}</dd>
+                    <dt><f:translate key="code.extensions" extensionName="size" /></dt>
+                    <dd>{code.extensions.label}</dd>
+                    <dt><f:translate key="code.dependencies" extensionName="size" /></dt>
+                    <dd>{code.dependencies.label}</dd>
+                </dl>
+            </a>
+
+            <a class="size-storage-detail-card size-storage-card-link size-storage-card-link-misc" href="#size-misc-breakdown">
+                <h2 class="size-storage-detail-heading">
+                    <span class="size-storage-detail-icon size-storage-detail-icon-misc me-1">
+                        <core:icon identifier="actions-cog" alternativeMarkupIdentifier="inline" size="medium" />
+                    </span>
+                    <span><f:translate key="section.misc" extensionName="size" /></span>
+                </h2>
+                <p class="size-storage-detail-total">{misc.total.summaryLabel}</p>
+                <p class="size-storage-detail-description"><f:translate key="module.storageStatistics.miscDescription" extensionName="size" /></p>
+            </a>
         </div>
 
     <section id="size-media-breakdown" class="size-storage-detail-card size-storage-full-width-card size-storage-anchor-target">

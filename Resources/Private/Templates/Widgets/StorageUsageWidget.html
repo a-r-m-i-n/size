@@ -1,37 +1,33 @@
 <html data-namespace-typo3-fluid="true" xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers">
 <div class="size-dashboard-widget">
-    <div class="size-dashboard-widget-link">
+    <a class="size-dashboard-widget-link" href="{storageStatisticsModuleUrl}">
         <div class="size-dashboard-widget-header">
-            <a class="size-dashboard-widget-primary-link" href="{storageStatisticsModuleUrl}">
+            <div>
                 <span class="size-dashboard-widget-kicker"><f:translate key="module.storageStatistics.kicker" extensionName="size" /></span>
-            </a>
+            </div>
             <div class="size-dashboard-widget-total-group">
-                <a class="size-dashboard-widget-primary-link" href="{storageStatisticsModuleUrl}">
-                    <strong class="size-dashboard-widget-total {total.highlightClass}">{total.displayLabel}</strong>
-                </a>
+                <strong class="size-dashboard-widget-total {total.highlightClass}">{total.displayLabel}</strong>
             </div>
         </div>
 
-        <a class="size-dashboard-widget-primary-link" href="{storageStatisticsModuleUrl}">
-            <div class="size-dashboard-widget-bar" role="img" aria-label="{f:translate(key: 'module.storageStatistics.barAriaLabel', extensionName: 'size')}">
-                <f:for each="{chart.categories}" as="category">
-                    <f:if condition="{category.bytes} > 0">
-                        <span
-                            class="size-dashboard-widget-segment {category.colorClass}"
-                            title="{category.label}: {category.formattedBytes}"
-                            style="width: {f:if(condition: category.displayPercentage, then: category.displayPercentage, else: category.percentage)}%"
-                        ></span>
-                    </f:if>
-                </f:for>
-                <f:if condition="{chart.showAvailableSegment}">
+        <div class="size-dashboard-widget-bar" role="img" aria-label="{f:translate(key: 'module.storageStatistics.barAriaLabel', extensionName: 'size')}">
+            <f:for each="{chart.categories}" as="category">
+                <f:if condition="{category.bytes} > 0">
                     <span
-                        class="size-dashboard-widget-segment size-storage-color-available {f:if(condition: chart.usesCompressedAvailableScale, then: 'size-storage-color-available-compressed')}"
-                        title="{chart.availableTitle}"
-                        style="width: {f:if(condition: chart.availableDisplayPercentage, then: chart.availableDisplayPercentage, else: chart.availablePercentage)}%"
+                        class="size-dashboard-widget-segment {category.colorClass}"
+                        title="{category.label}: {category.formattedBytes}"
+                        style="width: {f:if(condition: category.displayPercentage, then: category.displayPercentage, else: category.percentage)}%"
                     ></span>
                 </f:if>
-            </div>
-        </a>
+            </f:for>
+            <f:if condition="{chart.showAvailableSegment}">
+                <span
+                    class="size-dashboard-widget-segment size-storage-color-available {f:if(condition: chart.usesCompressedAvailableScale, then: 'size-storage-color-available-compressed')}"
+                    title="{chart.availableTitle}"
+                    style="width: {f:if(condition: chart.availableDisplayPercentage, then: chart.availableDisplayPercentage, else: chart.availablePercentage)}%"
+                ></span>
+            </f:if>
+        </div>
 
         <div class="size-dashboard-widget-legend">
             <f:for each="{chart.categories}" as="category">
@@ -39,7 +35,7 @@
                     <span class="size-dashboard-widget-legend-item">
                         <span class="size-dashboard-widget-legend-swatch {category.colorClass}"></span>
                         <span class="size-dashboard-widget-legend-copy">
-                            <span>{category.label}: {category.formattedBytes}</span>
+                            <span>{category.label}: {category.formattedBytes} ({category.percentage -> f:format.number(decimals: 1, decimalSeparator: '.', thousandsSeparator: '')}%)</span>
                         </span>
                     </span>
                 </f:if>
@@ -52,6 +48,6 @@
             </f:if>
         </div>
 
-    </div>
+    </a>
 </div>
 </html>

@@ -41,14 +41,15 @@
 }
 
 .size-dashboard-widget-link:hover,
-.size-dashboard-widget-link:focus-within {
+.size-dashboard-widget-link:focus-visible,
+.size-dashboard-widget-link:hover *,
+.size-dashboard-widget-link:focus-visible * {
     text-decoration: none;
-    background: var(--size-storage-surface-hover);
 }
 
-.size-dashboard-widget-primary-link {
-    color: inherit;
-    text-decoration: none;
+.size-dashboard-widget-link:hover,
+.size-dashboard-widget-link:focus-visible {
+    background: var(--size-storage-surface-hover);
 }
 
 .size-dashboard-widget-header {
