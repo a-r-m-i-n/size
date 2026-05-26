@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 use T3\Size\Event\BeforeSizeOverviewSnapshotStoredEvent;
 use T3\Size\Service\ByteFormatter;
 use T3\Size\Service\StorageUsageNotificationRegistry;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Http\NormalizedParams;
@@ -36,6 +37,7 @@ final readonly class StorageUsageNotificationListener
         private MailerInterface $mailer,
         private LanguageServiceFactory $languageServiceFactory,
         private SiteFinder $siteFinder,
+        private UriBuilder $backendUriBuilder,
         LogManager $logManager,
     ) {
         $this->logger = $logManager->getLogger(__CLASS__);
@@ -126,6 +128,7 @@ final readonly class StorageUsageNotificationListener
             $siteName = $this->getSiteName();
             $siteUrl = $this->getSiteUrl();
             $serverIp = $this->getServerIp();
+            $backendModuleUrl = $this->getBackendModuleUrl();
             $templatePaths = new TemplatePaths();
             $templatePaths->setTemplateRootPaths(array_replace(
                 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['templateRootPaths'] ?? [],
@@ -154,6 +157,7 @@ final readonly class StorageUsageNotificationListener
                     'siteName' => $siteName,
                     'siteUrl' => $siteUrl,
                     'serverIp' => $serverIp,
+                    'backendModuleUrl' => $backendModuleUrl,
                 ]);
             $this->mailer->send($email);
             $this->notificationRegistry->storeLastSentTimestamp($type, $calculatedAt);
@@ -304,6 +308,42 @@ final readonly class StorageUsageNotificationListener
         }
 
         return false !== filter_var($serverIp, FILTER_VALIDATE_IP) ? $serverIp : '';
+    }
+
+    private function getBackendModuleUrl(): string
+    {
+        try {
+            $moduleUrl = (string)$this->backendUriBuilder->buildUriFromRoute(
+                'size_storage_statistics',
+                [],
+                UriBuilder::SHAREABLE_URL
+            );
+        } catch (\Throwable) {
+            return '';
+        }
+
+        $siteUrl = $this->getSiteUrl();
+        if ('' === $siteUrl) {
+            return $moduleUrl;
+        }
+
+        $modulePath = (string)(parse_url($moduleUrl, PHP_URL_PATH) ?? '');
+        $moduleQuery = (string)(parse_url($moduleUrl, PHP_URL_QUERY) ?? '');
+        $moduleFragment = (string)(parse_url($moduleUrl, PHP_URL_FRAGMENT) ?? '');
+
+        if ('' === $modulePath) {
+            return $moduleUrl;
+        }
+
+        $absoluteModuleUrl = rtrim($siteUrl, '/') . '/' . ltrim($modulePath, '/');
+        if ('' !== $moduleQuery) {
+            $absoluteModuleUrl .= '?' . $moduleQuery;
+        }
+        if ('' !== $moduleFragment) {
+            $absoluteModuleUrl .= '#' . $moduleFragment;
+        }
+
+        return $absoluteModuleUrl;
     }
 
     private function formatBytes(int $bytes): string

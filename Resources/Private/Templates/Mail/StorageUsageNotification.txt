@@ -5,18 +5,17 @@
 <f:section name="Main">
 {introduction}
 
-<f:if condition="{siteName}">
-<f:translate key="mail.storageUsage.label.siteName" extensionName="size" />: {siteName}
-</f:if>
-<f:if condition="{siteUrl}">
-<f:translate key="mail.storageUsage.label.siteUrl" extensionName="size" />: {siteUrl}
-</f:if>
-<f:if condition="{serverIp}">
-<f:translate key="mail.storageUsage.label.serverIp" extensionName="size" />: {serverIp}
-</f:if>
+<f:if condition="{siteName}"><f:translate key="mail.storageUsage.label.siteName" extensionName="size" />: {siteName}</f:if>
+<f:if condition="{siteUrl}"><f:translate key="mail.storageUsage.label.siteUrl" extensionName="size" />: {siteUrl}</f:if>
+<f:if condition="{serverIp}"><f:translate key="mail.storageUsage.label.serverIp" extensionName="size" />: {serverIp}</f:if>
 <f:translate key="mail.storageUsage.label.type" extensionName="size" />: {notificationType}
 <f:translate key="mail.storageUsage.label.percentage" extensionName="size" />: {percentage}%
 <f:translate key="mail.storageUsage.label.total" extensionName="size" />: {totalLabel}
 <f:translate key="mail.storageUsage.label.maximum" extensionName="size" />: {maximumLabel}
 <f:translate key="mail.storageUsage.label.calculatedAt" extensionName="size" />: {calculatedAtLabel}
+<f:if condition="{backendModuleUrl}">
+<f:translate key="mail.storageUsage.link.moreDetails" extensionName="size" />: {backendModuleUrl}
+</f:if>
+
+---
 </f:section>

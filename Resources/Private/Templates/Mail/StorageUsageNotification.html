@@ -5,6 +5,7 @@
 <f:section name="Main">
     <f:if condition="{introduction}">
         <h4>{introduction}</h4>
+        <br>
     </f:if>
     <table class="statistics" role="presentation">
         <f:if condition="{siteName}">
@@ -46,4 +47,9 @@
             <td>{calculatedAtLabel}</td>
         </tr>
     </table>
+    <f:if condition="{backendModuleUrl}">
+        <p>
+            <a href="{backendModuleUrl}"><f:translate key="mail.storageUsage.link.moreDetails" extensionName="size" /></a>
+        </p>
+    </f:if>
 </f:section>
