@@ -127,16 +127,16 @@
                 <source>Maximum total storage: Optional maximum value for the total storage display, for example "250 MB", "10 GB" or "0.5 TB".</source>
             </trans-unit>
             <trans-unit id="settings.warningNotificationRecipients">
-                <source>Warning notification recipients: Optional comma- or line-separated email recipients for warning notifications above 90% and below 100%.</source>
+                <source>Warning notification recipients: Comma-separated email recipients for warning notification above 90% space usage. Keep empty to disable email notification.</source>
             </trans-unit>
             <trans-unit id="settings.fullNotificationRecipients">
-                <source>Full notification recipients: Optional comma- or line-separated email recipients for full notifications at or above 100%.</source>
+                <source>Full notification recipients: Comma-separated email recipients for full notification at or above 100%. Keep empty to disable email notification.</source>
             </trans-unit>
             <trans-unit id="settings.additionalMiscFolders">
-                <source>Additional Misc folders: Optional comma- or line-separated relative project paths that should be included as separate rows in the Misc section, for example packages, public</source>
+                <source>Additional Misc folders: Optional comma-separated relative project paths that should be included as separate rows in the Misc section.</source>
             </trans-unit>
             <trans-unit id="settings.enableHistory">
-                <source>Enable history: Stores 31 daily snapshots plus 12 completed ISO weeks and 12 completed calendar months for aggregated storage history and week/month comparisons.</source>
+                <source>Enable history: Stores snapshots for aggregated storage history and week/month comparisons.</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Dashboard</source>

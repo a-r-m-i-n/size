@@ -1,14 +1,14 @@
-# cat=basic; type=string; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.maximumTotalStorage
-maximumTotalStorage =
-
-# cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.warningNotificationRecipients
-warningNotificationRecipients =
-
-# cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients
-fullNotificationRecipients =
+# cat=basic; type=boolean; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory
+enableHistory = 1
 
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders
 additionalMiscFolders =
 
-# cat=basic; type=boolean; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory
-enableHistory = 1
+# cat=Storage Alerts; type=string; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.maximumTotalStorage
+maximumTotalStorage =
+
+# cat=Storage Alerts; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.warningNotificationRecipients
+warningNotificationRecipients =
+
+# cat=Storage Alerts; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients
+fullNotificationRecipients =
