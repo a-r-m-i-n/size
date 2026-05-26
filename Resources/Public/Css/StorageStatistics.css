@@ -378,6 +378,13 @@
     text-decoration: none;
 }
 
+.size-storage-card-link-anchor:hover,
+.size-storage-card-link-anchor:focus-visible,
+.size-storage-card-link-anchor:hover *,
+.size-storage-card-link-anchor:focus-visible * {
+    text-decoration: none;
+}
+
 .size-storage-card-link:hover,
 .size-storage-card-link:focus-visible {
     background: var(--size-storage-surface-hover);
