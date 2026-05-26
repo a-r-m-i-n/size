@@ -124,34 +124,19 @@
                 <source>not available</source>
             </trans-unit>
             <trans-unit id="settings.maximumTotalStorage">
-                <source>Maximum total storage</source>
-            </trans-unit>
-            <trans-unit id="settings.maximumTotalStorage.description">
-                <source>Optional maximum value for the total storage display, for example 250 MB, 1 GB or 1.5 GB.</source>
+                <source>Maximum total storage: Optional maximum value for the total storage display, for example "250 MB", "10 GB" or "0.5 TB".</source>
             </trans-unit>
             <trans-unit id="settings.warningNotificationRecipients">
-                <source>Warning notification recipients</source>
-            </trans-unit>
-            <trans-unit id="settings.warningNotificationRecipients.description">
-                <source>Optional comma- or line-separated email recipients for warning notifications above 90% and below 100%.</source>
+                <source>Warning notification recipients: Optional comma- or line-separated email recipients for warning notifications above 90% and below 100%.</source>
             </trans-unit>
             <trans-unit id="settings.fullNotificationRecipients">
-                <source>Full notification recipients</source>
-            </trans-unit>
-            <trans-unit id="settings.fullNotificationRecipients.description">
-                <source>Optional comma- or line-separated email recipients for full notifications at or above 100%.</source>
+                <source>Full notification recipients: Optional comma- or line-separated email recipients for full notifications at or above 100%.</source>
             </trans-unit>
             <trans-unit id="settings.additionalMiscFolders">
-                <source>Additional Misc folders</source>
-            </trans-unit>
-            <trans-unit id="settings.additionalMiscFolders.description">
-                <source>Optional comma- or line-separated relative project paths that should be included as separate rows in the Misc section, for example packages, public/uploads, or Build/cache.</source>
+                <source>Additional Misc folders: Optional comma- or line-separated relative project paths that should be included as separate rows in the Misc section, for example packages, public</source>
             </trans-unit>
             <trans-unit id="settings.enableHistory">
-                <source>Enable history</source>
-            </trans-unit>
-            <trans-unit id="settings.enableHistory.description">
-                <source>Stores 31 daily snapshots plus 12 completed ISO weeks and 12 completed calendar months for aggregated storage history and week/month comparisons.</source>
+                <source>Enable history: Stores 31 daily snapshots plus 12 completed ISO weeks and 12 completed calendar months for aggregated storage history and week/month comparisons.</source>
             </trans-unit>
             <trans-unit id="module.storageStatistics.title">
                 <source>Dashboard</source>
@@ -413,6 +398,9 @@
             </trans-unit>
             <trans-unit id="mail.storageUsage.label.calculatedAt">
                 <source>Calculated at</source>
+            </trans-unit>
+            <trans-unit id="mail.storageUsage.link.moreDetails">
+                <source>See more details</source>
             </trans-unit>
             <trans-unit id="toolbar.openStorageStatistics">
                 <source>Extended storage usage statistics</source>

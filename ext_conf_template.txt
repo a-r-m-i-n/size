@@ -1,19 +1,14 @@
 # cat=basic; type=string; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.maximumTotalStorage
-# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.maximumTotalStorage.description
 maximumTotalStorage =
 
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.warningNotificationRecipients
-# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.warningNotificationRecipients.description
 warningNotificationRecipients =
 
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients
-# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.fullNotificationRecipients.description
 fullNotificationRecipients =
 
 # cat=basic; type=text; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders
-# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.additionalMiscFolders.description
 additionalMiscFolders =
 
 # cat=basic; type=boolean; label=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory
-# description=LLL:EXT:size/Resources/Private/Language/locallang.xlf:settings.enableHistory.description
 enableHistory = 1
